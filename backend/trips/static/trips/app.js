@@ -70,7 +70,9 @@ function render() {
         <div class="place ${p.visited ? 'visited' : ''}">
           <div class="num">${i + 1}</div>
           <div class="info"><b>${CAT[p.category] || '📍'} ${esc(p.name)}</b>
-            <span class="muted">${p.time ? p.time.slice(0, 5) + ' · ' : ''}${esc(p.address || p.category)}</span></div>
+            <span class="muted">${esc(p.address || p.category)}</span></div>
+          <input class="time" type="time" title="Time" value="${p.time ? p.time.slice(0, 5) : ''}"
+                 onchange="changeTime(${p.id}, this.value)">
           <input type="checkbox" title="Visited" ${p.visited ? 'checked' : ''} onchange="toggleVisited(${p.id}, this.checked)">
           <button class="ghost" title="Remove" onclick="deletePlace(${p.id})">✕</button>
         </div>`).join('') : '<p class="muted">No places on this day yet. Add the first one below.</p>'}
@@ -143,6 +145,11 @@ function clearPick() { state.picked = null; render(); }
 
 async function toggleVisited(id, visited) {
   await api(`/places/${id}/`, { method: 'PATCH', body: JSON.stringify({ visited }) });
+  openTrip(state.tripId, true);
+}
+
+async function changeTime(id, value) {
+  await api(`/places/${id}/`, { method: 'PATCH', body: JSON.stringify({ time: value || null }) });
   openTrip(state.tripId, true);
 }
 

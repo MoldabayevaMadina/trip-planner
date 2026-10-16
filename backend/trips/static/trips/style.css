@@ -67,3 +67,5 @@ button.ghost:hover { color: var(--danger); }
 .place input[type=checkbox] { width: 18px; height: 18px; }
 .add { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: end; }
 @media (max-width: 600px) { .add { grid-template-columns: 1fr 1fr; } }
+
+.place input.time { width: 110px; flex: 0 0 auto; padding: 4px 6px; font-size: .85rem; }
