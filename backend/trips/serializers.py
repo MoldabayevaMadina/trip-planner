@@ -7,11 +7,33 @@ MAX_TRIP_DAYS = 30
 
 
 class PlaceSerializer(serializers.ModelSerializer):
+    """Coordinates are optional: if they are missing, the server finds them by the place name."""
+    latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+
     class Meta:
         model = Place
         fields = ["id", "day", "name", "address", "latitude", "longitude", "time", "category", "visited"]
-        read_only_fields = ["day"]
+        read_only_fields = ["day", "address"]
 
+    def validate(self, attrs):
+        if ("latitude" in attrs) != ("longitude" in attrs):
+            raise serializers.ValidationError("Send both latitude and longitude, or neither.")
+        return attrs
+
+
+class PlaceMoveSerializer(PlaceSerializer):
+    """Like PlaceSerializer, but `day` can be changed: move a place to another day of the same trip."""
+
+    day = serializers.PrimaryKeyRelatedField(queryset=Day.objects.all(), required=False)
+
+    class Meta(PlaceSerializer.Meta):
+        read_only_fields = ["address"]
+
+    def validate_day(self, value):
+        if self.instance and value.trip_id != self.instance.day.trip_id:
+            raise serializers.ValidationError("A place can only be moved to a day of the same trip.")
+        return value
 
 class DaySerializer(serializers.ModelSerializer):
     places = PlaceSerializer(many=True, read_only=True)
