@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const esc = (t) => { const d = document.createElement('div'); d.textContent = t ?? ''; return d.innerHTML; };
 const CAT = { sight:'🏛', museum:'🖼', food:'🍽', walk:'🚶', shopping:'🛍', other:'📍' };
-let state = { trips: [], tripId: null, data: null, dayId: null };
+let state = { trips: [], tripId: null, data: null, dayId: null, picked: null };
 let map;
 
 async function api(path, opts = {}) {
@@ -82,6 +82,9 @@ function render() {
         ${Object.entries(CAT).map(([k, v]) => `<option value="${k}">${v} ${k}</option>`).join('')}</select></div>
       <div><button>Add</button></div>
     </form>
+    <div class="muted" id="pick-hint">${state.picked
+      ? `📍 Point picked on the map (${state.picked.lat.toFixed(5)}, ${state.picked.lng.toFixed(5)}). Enter a name and press Add. <a href="#" onclick="clearPick(); return false;">Cancel</a>`
+      : 'Tip: click on the map to choose the exact point, or just type a name to search for it.'}</div>
     <div class="err" id="place-err"></div>`;
 
   $('place-form').addEventListener('submit', addPlace);
@@ -104,20 +107,39 @@ function drawMap(trip, day) {
   });
   if (points.length > 1) L.polyline(points, { color: '#0f766e', weight: 4, opacity: .7, dashArray: '8 8' }).addTo(map);
   if (points.length) map.fitBounds(points, { padding: [40, 40], maxZoom: 15, animate: false });
+
+
+  if (state.picked) {
+    L.circleMarker([state.picked.lat, state.picked.lng], { radius: 9, color: '#b45309', weight: 3, fillOpacity: .3 }).addTo(map);
+  }
+
+
+  map.on('click', (e) => {
+    state.picked = { lat: e.latlng.lat, lng: e.latlng.lng };
+    render();
+    document.querySelector('#place-form input[name=name]').focus();
+  });
 }
 
-function selectDay(id) { state.dayId = id; render(); }
+function selectDay(id) { state.dayId = id; state.picked = null; render(); }
 
 async function addPlace(e) {
   e.preventDefault();
   const body = Object.fromEntries(new FormData(e.target));
   if (!body.time) delete body.time;
-  $('place-err').textContent = 'Searching on the map…';
+  if (state.picked) {
+    body.latitude = Number(state.picked.lat.toFixed(6));
+    body.longitude = Number(state.picked.lng.toFixed(6));
+  }
+  $('place-err').textContent = state.picked ? 'Saving…' : 'Searching on the map…';
   try {
     await api(`/days/${state.dayId}/places/`, { method: 'POST', body: JSON.stringify(body) });
+    state.picked = null;
     await openTrip(state.tripId, true);
   } catch (err) { $('place-err').textContent = err.message; }
 }
+
+function clearPick() { state.picked = null; render(); }
 
 async function toggleVisited(id, visited) {
   await api(`/places/${id}/`, { method: 'PATCH', body: JSON.stringify({ visited }) });
