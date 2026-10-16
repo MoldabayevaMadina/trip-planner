@@ -144,3 +144,10 @@ HTTP_TIMEOUT = 6
 WEATHER_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 WEATHER_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 WEATHER_CACHE_MINUTES = 180
+
+REST_FRAMEWORK = {
+    
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    "UNAUTHENTICATED_USER": None,
+}

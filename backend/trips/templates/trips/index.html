@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip Planner</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="{% static 'trips/style.css' %}">
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>🧭 Trip<span>Planner</span></h1>
+    <p class="sub">Plan the route day by day. Weather and map included.</p>
+
+    <h2>My trips</h2>
+    <div id="trips"></div>
+
+    <h2>New trip</h2>
+    <form id="trip-form">
+      <label>City</label><input name="city" placeholder="Istanbul" required>
+      <label>Title (optional)</label><input name="title" placeholder="Istanbul with friends">
+      <div class="two">
+        <div><label>From</label><input name="start_date" type="date" required></div>
+        <div><label>To</label><input name="end_date" type="date" required></div>
+      </div>
+      <div style="margin-top:12px"><button>Create trip</button></div>
+      <div class="err" id="trip-err"></div>
+    </form>
+  </aside>
+
+  <main id="main">
+    <div class="empty">Choose a trip or create a new one.</div>
+  </main>
+</div>
+
+<script src="{% static 'trips/app.js' %}"></script>
+</body>
+</html>

@@ -58,13 +58,17 @@ class DaySerializer(serializers.ModelSerializer):
 
 
 class TripSerializer(serializers.ModelSerializer):
+    places_count = serializers.SerializerMethodField()
     class Meta:
         model = Trip
         fields = ["id", "title", "city", "country", "latitude", "longitude",
-                  "start_date", "end_date", "created_at"]
+                  "start_date", "end_date", "places_count", "created_at"]
         # coordinates and country are found by the server, not sent by the client
         read_only_fields = ["country", "latitude", "longitude", "created_at"]
         extra_kwargs = {"title": {"required": False, "allow_blank": True}}
+
+    def get_places_count(self, obj):
+        return Place.objects.filter(day__trip=obj).count()
 
     def validate(self, attrs):
         start = attrs.get("start_date", getattr(self.instance, "start_date", None))

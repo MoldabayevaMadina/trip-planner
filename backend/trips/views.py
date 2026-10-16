@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.decorators import api_view
@@ -103,3 +103,7 @@ class PlaceDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = Place.objects.select_related("day")
     serializer_class = PlaceMoveSerializer
+
+def index(request):
+    """The web page with the map. It loads all data from our own API with JavaScript."""
+    return render(request, "trips/index.html")
