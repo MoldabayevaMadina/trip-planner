@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import Day, Place, Trip
 from .services import describe_weather, is_rainy
+from drf_spectacular.utils import extend_schema_field
 
 MAX_TRIP_DAYS = 30
 
@@ -35,6 +36,15 @@ class PlaceMoveSerializer(PlaceSerializer):
             raise serializers.ValidationError("A place can only be moved to a day of the same trip.")
         return value
 
+class WeatherSerializer(serializers.Serializer):
+    """Shape of the "weather" field in a day (used only for API docs)."""
+    icon = serializers.CharField()
+    text = serializers.CharField()
+    temp_max = serializers.FloatField(allow_null=True)
+    temp_min = serializers.FloatField(allow_null=True)
+    rainy = serializers.BooleanField()
+    source = serializers.CharField()
+
 class DaySerializer(serializers.ModelSerializer):
     places = PlaceSerializer(many=True, read_only=True)
     weather = serializers.SerializerMethodField()
@@ -43,6 +53,7 @@ class DaySerializer(serializers.ModelSerializer):
         model = Day
         fields = ["id", "date", "note", "weather", "places"]
 
+    @extend_schema_field(WeatherSerializer(allow_null=True))
     def get_weather(self, obj):
         if obj.weather_code is None and obj.temp_max is None:
             return None
@@ -67,7 +78,7 @@ class TripSerializer(serializers.ModelSerializer):
         read_only_fields = ["country", "latitude", "longitude", "created_at"]
         extra_kwargs = {"title": {"required": False, "allow_blank": True}}
 
-    def get_places_count(self, obj):
+    def get_places_count(self, obj) -> int:
         return Place.objects.filter(day__trip=obj).count()
 
     def validate(self, attrs):

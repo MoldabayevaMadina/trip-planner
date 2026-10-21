@@ -5,3 +5,4 @@ requests==2.32.*
 python-dotenv==1.*
 gunicorn==23.*
 whitenoise==6.*
+drf-spectacular==0.28.*

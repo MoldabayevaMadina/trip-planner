@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "rest_framework", 
+    'drf_spectacular',
     "trips",
 ]
 
@@ -152,4 +153,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
     "UNAUTHENTICATED_USER": None,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Trip Planner API',
+    'DESCRIPTION': 'Plan trips day by day: places with coordinates (Nominatim) and weather for every day (Open-Meteo).',
+    'VERSION': '1.0.0',
 }

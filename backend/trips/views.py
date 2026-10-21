@@ -1,9 +1,11 @@
 from django.db import transaction
 from django.shortcuts import get_object_or_404, render
-from rest_framework import generics, status
+from rest_framework import generics, status, serializers
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, inline_serializer
+
 
 from .models import Day, Place, Trip
 from .serializers import DaySerializer, PlaceMoveSerializer, PlaceSerializer, TripSerializer
@@ -55,6 +57,19 @@ class TripDetail(generics.RetrieveUpdateDestroyAPIView):
             extra = {"latitude": geo.latitude, "longitude": geo.longitude, "country": geo.country}
         trip = serializer.save(**extra)
         trip.sync_days()
+
+
+@extend_schema(
+    summary="Days of a trip with places and weather",
+    responses=inline_serializer(
+        name="TripDaysResponse",
+        fields={
+            "trip": TripSerializer(),
+            "weather_available": serializers.BooleanField(),
+            "days": DaySerializer(many=True),
+        },
+    ),
+)
 
 
 @api_view(["GET"])
