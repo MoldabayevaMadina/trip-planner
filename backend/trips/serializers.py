@@ -52,6 +52,7 @@ class DaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Day
         fields = ["id", "date", "note", "weather", "places"]
+        read_only_fields = ["date"]
 
     @extend_schema_field(WeatherSerializer(allow_null=True))
     def get_weather(self, obj):

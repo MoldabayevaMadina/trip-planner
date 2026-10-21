@@ -154,10 +154,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
     "UNAUTHENTICATED_USER": None,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
 }
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Trip Planner API',
     'DESCRIPTION': 'Plan trips day by day: places with coordinates (Nominatim) and weather for every day (Open-Meteo).',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
