@@ -39,7 +39,7 @@ async function openTrip(id, keepDay = false) {
 }
 
 function render() {
-  if (map) { map.remove(); map = null; }   // remove the old map before its container is replaced
+  if (map) { map.remove(); map = null; }   
   const { trip, days, weather_available } = state.data;
   const day = days.find(d => d.id === state.dayId);
   const daysLeft = Math.ceil((new Date(trip.start_date + 'T00:00') - new Date()) / 86400000);

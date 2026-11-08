@@ -130,6 +130,86 @@ paths:
               schema:
                 $ref: '#/components/schemas/Place'
           description: ''
+  /api/geocode/:
+    get:
+      operationId: geocode_retrieve
+      description: GET /api/geocode/?q=... — find coordinates without saving anything.
+      summary: Preview a place search before adding it
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: What to search, e.g. "Galata Tower, Istanbul"
+        required: true
+      tags:
+      - geocode
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeocodeResponse'
+          description: ''
+  /api/health/:
+    get:
+      operationId: health_retrieve
+      description: GET /api/health/ — is the backend up and can it reach the database?
+      summary: Backend and database status
+      tags:
+      - health
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+          description: ''
+  /api/places/:
+    get:
+      operationId: places_list
+      description: GET /api/places/?trip=&visited=&category= — all places with optional
+        filters.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          enum:
+          - food
+          - museum
+          - other
+          - shopping
+          - sight
+          - walk
+        description: Place category
+      - in: query
+        name: trip
+        schema:
+          type: integer
+        description: Only places of this trip
+      - in: query
+        name: visited
+        schema:
+          type: boolean
+        description: true / false
+      tags:
+      - places
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+          description: ''
   /api/places/{id}/:
     get:
       operationId: places_retrieve
@@ -372,6 +452,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/TripDaysResponse'
           description: ''
+  /api/trips/{id}/places/:
+    get:
+      operationId: trips_places_list
+      description: GET /api/trips/{id}/places/ — all places of a trip, across all
+        its days.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - trips
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+          description: ''
 components:
   schemas:
     CategoryEnum:
@@ -418,6 +522,37 @@ components:
       - id
       - places
       - weather
+    GeocodeResponse:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        name:
+          type: string
+        address:
+          type: string
+        country:
+          type: string
+      required:
+      - address
+      - country
+      - latitude
+      - longitude
+      - name
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        db:
+          type: string
+      required:
+      - db
+      - status
     PatchedDay:
       type: object
       properties:

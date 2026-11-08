@@ -1,8 +1,11 @@
 {
   "info": {
+    "_postman_id": "d9abaa56-e5b7-4781-92f4-71e2ebd36901",
     "name": "Trip Planner API",
     "description": "All endpoints of the Trip Planner API.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59116490",
+    "_collection_link": "https://go.postman.co/collection/59116490-d9abaa56-e5b7-4781-92f4-71e2ebd36901?source=collection_link"
   },
   "item": [
     {
@@ -10,6 +13,18 @@
       "item": [
         {
           "name": "List trips",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is an array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -26,53 +41,10 @@
             },
             "description": "All trips."
           },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Response is an array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
-                ]
-              }
-            }
-          ]
+          "response": []
         },
         {
           "name": "Create trip",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips",
-                ""
-              ]
-            },
-            "description": "Creates a trip. The city is geocoded (Nominatim) and a day is created for every date. Saves the new id to {{tripId}}.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Istanbul with friends\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -89,10 +61,53 @@
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Istanbul with friends\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ]
+            },
+            "description": "Creates a trip. The city is geocoded (Nominatim) and a day is created for every date. Saves the new id to {{tripId}}."
+          },
+          "response": []
         },
         {
           "name": "Get trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Same trip\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"tripId\"))));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -107,57 +122,12 @@
                 "{{tripId}}",
                 ""
               ]
-            },
-            "description": ""
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Same trip\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"tripId\"))));"
-                ]
-              }
             }
-          ]
+          },
+          "response": []
         },
         {
           "name": "Update trip (PUT)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips",
-                "{{tripId}}",
-                ""
-              ]
-            },
-            "description": "Full update: all writable fields are sent.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Istanbul — long weekend\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -168,18 +138,24 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Partial update trip (PATCH)",
+          ],
           "request": {
-            "method": "PATCH",
+            "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Istanbul — long weekend\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
               "host": [
@@ -192,18 +168,12 @@
                 ""
               ]
             },
-            "description": "Only the sent fields change.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Istanbul with friends 🇹🇷\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Full update: all writable fields are sent."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Partial update trip (PATCH)",
           "event": [
             {
               "listen": "test",
@@ -215,10 +185,53 @@
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Istanbul with friends 🇹🇷\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                ""
+              ]
+            },
+            "description": "Only the sent fields change."
+          },
+          "response": []
         },
         {
           "name": "Trip days with weather",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\n\nconst data = pm.response.json();\n// save the first two days for the next requests\npm.collectionVariables.set(\"dayId\", data.days[0].id);\npm.collectionVariables.set(\"day2Id\", data.days[1].id);\n\npm.test(\"One day for every date of the trip\", () => {\n    const start = new Date(data.trip.start_date);\n    const end = new Date(data.trip.end_date);\n    const expected = Math.round((end - start) / 86400000) + 1; \n    pm.expect(data.days.length).to.eql(expected);\n});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -237,22 +250,7 @@
             },
             "description": "Days of the trip with places and weather (Open-Meteo, cached for 3 hours). Saves the first two day ids to {{dayId}} and {{day2Id}}."
           },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
-                  "const data = pm.response.json();",
-                  "pm.test(\"4 days created from the dates\", () => pm.expect(data.days.length).to.eql(4));",
-                  "pm.collectionVariables.set(\"dayId\", data.days[0].id);",
-                  "pm.collectionVariables.set(\"day2Id\", data.days[1].id);"
-                ]
-              }
-            }
-          ]
+          "response": []
         }
       ]
     },
@@ -261,6 +259,17 @@
       "item": [
         {
           "name": "Get day",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -275,56 +284,12 @@
                 "{{dayId}}",
                 ""
               ]
-            },
-            "description": ""
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
             }
-          ]
+          },
+          "response": []
         },
         {
           "name": "Set day note (PATCH)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "days",
-                "{{dayId}}",
-                ""
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"note\": \"Old city & museums\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -336,10 +301,52 @@
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Old city & museums\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Update day (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "PUT",
             "header": [
@@ -348,6 +355,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"note\": \"Old city, museums and a Bosphorus walk\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/days/{{dayId}}/",
               "host": [
@@ -360,18 +376,12 @@
                 ""
               ]
             },
-            "description": "Only `note` is writable; the date comes from the trip and can't be changed.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"note\": \"Old city, museums and a Bosphorus walk\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Only `note` is writable; the date comes from the trip and can't be changed."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "List places of a day",
           "event": [
             {
               "listen": "test",
@@ -382,10 +392,7 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "List places of a day",
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -401,21 +408,9 @@
                 "places",
                 ""
               ]
-            },
-            "description": ""
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
             }
-          ]
+          },
+          "response": []
         }
       ]
     },
@@ -424,39 +419,6 @@
       "item": [
         {
           "name": "Add place by name (geocoded)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "days",
-                "{{dayId}}",
-                "places",
-                ""
-              ]
-            },
-            "description": "No coordinates sent: the server finds them near the trip's city. Saves the id to {{placeId}}.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Galata Tower\",\n  \"time\": \"16:00\",\n  \"category\": \"sight\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -470,10 +432,7 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Add place with coordinates",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -482,6 +441,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Galata Tower\",\n  \"time\": \"16:00\",\n  \"category\": \"sight\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
               "host": [
@@ -495,18 +463,12 @@
                 ""
               ]
             },
-            "description": "Coordinates sent: no geocoding. Saves the id to {{place2Id}}.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Our hotel\",\n  \"latitude\": 41.0369,\n  \"longitude\": 28.985,\n  \"time\": \"21:00\",\n  \"category\": \"other\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "No coordinates sent: the server finds them near the trip's city. Saves the id to {{placeId}}."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Add place with coordinates",
           "event": [
             {
               "listen": "test",
@@ -518,10 +480,54 @@
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Our hotel\",\n  \"latitude\": 41.0369,\n  \"longitude\": 28.985,\n  \"time\": \"21:00\",\n  \"category\": \"other\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "places",
+                ""
+              ]
+            },
+            "description": "Coordinates sent: no geocoding. Saves the id to {{place2Id}}."
+          },
+          "response": []
         },
         {
           "name": "Get place",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -536,56 +542,12 @@
                 "{{placeId}}",
                 ""
               ]
-            },
-            "description": ""
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
             }
-          ]
+          },
+          "response": []
         },
         {
           "name": "Mark place visited (PATCH)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "places",
-                "{{placeId}}",
-                ""
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"visited\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -597,10 +559,7 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Move place to another day (PATCH)",
+          ],
           "request": {
             "method": "PATCH",
             "header": [
@@ -609,6 +568,61 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visited\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "{{placeId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Move place to another day (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Moved\", () => pm.expect(pm.response.json().day).to.eql(Number(pm.collectionVariables.get(\"day2Id\"))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day\": {{day2Id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/places/{{placeId}}/",
               "host": [
@@ -621,33 +635,131 @@
                 ""
               ]
             },
-            "description": "A place can be moved only to a day of the same trip.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"day\": {{day2Id}}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "A place can be moved only to a day of the same trip."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "All places of a trip",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Moved\", () => pm.expect(pm.response.json().day).to.eql(Number(pm.collectionVariables.get(\"day2Id\"))));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Returns a list of places\", () => {\r\n    pm.expect(pm.response.json()).to.be.an(\"array\");\r\n});"
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/places/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                "places",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter places (visited)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "   pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n   pm.test(\"Only visited places\", () => {\r\n       pm.response.json().forEach(p => pm.expect(p.visited).to.eql(true));\r\n   });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/?trip={{tripId}}&visited=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "trip",
+                  "value": "{{tripId}}"
+                },
+                {
+                  "key": "visited",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter places (category)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Only sights\", () => {\r\n    pm.response.json().forEach(p => pm.expect(p.category).to.eql(\"sight\"));\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/?category=sight",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "sight"
+                }
+              ]
+            }
+          },
+          "response": []
         },
         {
           "name": "Update place (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "PUT",
             "header": [
@@ -656,6 +768,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day\": {{dayId}},\n  \"name\": \"Our hotel (Karaköy)\",\n  \"latitude\": 41.0245,\n  \"longitude\": 28.9770,\n  \"time\": \"22:00\",\n  \"category\": \"other\",\n  \"visited\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/places/{{place2Id}}/",
               "host": [
@@ -667,33 +788,23 @@
                 "{{place2Id}}",
                 ""
               ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"day\": {{dayId}},\n  \"name\": \"Our hotel (Karaköy)\",\n  \"latitude\": 41.0245,\n  \"longitude\": 28.9770,\n  \"time\": \"22:00\",\n  \"category\": \"other\",\n  \"visited\": false\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Delete place",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Delete place",
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
@@ -708,24 +819,23 @@
                 "{{place2Id}}",
                 ""
               ]
-            },
-            "description": ""
+            }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Deleted place is gone",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Deleted place is gone",
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -740,21 +850,9 @@
                 "{{place2Id}}",
                 ""
               ]
-            },
-            "description": ""
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
             }
-          ]
+          },
+          "response": []
         }
       ]
     },
@@ -763,37 +861,6 @@
       "item": [
         {
           "name": "End date before start date → 400",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips",
-                ""
-              ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-13\",\n  \"end_date\": \"2026-11-10\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
           "event": [
             {
               "listen": "test",
@@ -805,10 +872,7 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Missing required fields → 400",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -817,6 +881,15 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-13\",\n  \"end_date\": \"2026-11-10\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/trips/",
               "host": [
@@ -827,8 +900,31 @@
                 "trips",
                 ""
               ]
-            },
-            "description": "",
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Missing required fields → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"No city, no dates\"\n}",
@@ -837,31 +933,7 @@
                   "language": "json"
                 }
               }
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "City not found → 400",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            },
             "url": {
               "raw": "{{baseUrl}}/api/trips/",
               "host": [
@@ -872,19 +944,12 @@
                 "trips",
                 ""
               ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"city\": \"Qwzxqwzxqwzx\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-12\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "City not found → 400",
           "event": [
             {
               "listen": "test",
@@ -895,10 +960,7 @@
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Only latitude sent → 400",
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -907,6 +969,59 @@
                 "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city\": \"Qwzxqwzxqwzx\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Only latitude sent → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Somewhere\",\n  \"latitude\": 41.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
               "host": [
@@ -919,33 +1034,23 @@
                 "places",
                 ""
               ]
-            },
-            "description": "",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Somewhere\",\n  \"latitude\": 41.0\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Trip not found → 404",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Trip not found → 404",
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -960,24 +1065,23 @@
                 "999999",
                 ""
               ]
-            },
-            "description": ""
+            }
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Method not allowed → 405",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+                  "pm.test(\"Status is 405\", () => pm.response.to.have.status(405));"
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Method not allowed → 405",
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
@@ -995,18 +1099,111 @@
             },
             "description": "Days are deleted together with their trip, not one by one."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Geocode: query too short → 400",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 405\", () => pm.response.to.have.status(405));"
+                  "  pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/geocode/?q=a",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "geocode",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "a"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Places: unknown category → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "  pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/?category=pizza",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "pizza"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trip places: unknown trip → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "  pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/999999/places/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "999999",
+                "places",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1015,6 +1212,17 @@
       "item": [
         {
           "name": "Delete trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1032,21 +1240,21 @@
             },
             "description": "Deletes the trip with its days and places (CASCADE)."
           },
-          "response": [],
+          "response": []
+        },
+        {
+          "name": "Deleted trip is gone",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
-          ]
-        },
-        {
-          "name": "Deleted trip is gone",
+          ],
           "request": {
             "method": "GET",
             "header": [],
@@ -1061,21 +1269,80 @@
                 "{{tripId}}",
                 ""
               ]
-            },
-            "description": ""
+            }
           },
-          "response": [],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Service",
+      "item": [
+        {
+          "name": "Health check",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+                  "  pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n  pm.test(\"DB connected\", () => pm.expect(pm.response.json().db).to.eql(\"connected\"));"
                 ]
               }
             }
-          ]
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Geocode preview",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "  pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n  pm.test(\"Coordinates found\", () => {\r\n      const g = pm.response.json();\r\n      pm.expect(g.latitude).to.be.a(\"number\");\r\n      pm.expect(g.longitude).to.be.a(\"number\");\r\n  });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/geocode/?q=Galata Tower, Istanbul",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "geocode",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Galata Tower, Istanbul"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }
