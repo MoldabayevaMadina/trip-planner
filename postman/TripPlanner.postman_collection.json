@@ -1,11 +1,11 @@
 {
   "info": {
-    "_postman_id": "d9abaa56-e5b7-4781-92f4-71e2ebd36901",
+    "_postman_id": "687a15ad-9e4e-41fe-9347-64a00290e7de",
     "name": "Trip Planner API",
-    "description": "All endpoints of the Trip Planner API.",
+    "description": "All endpoints of the Trip Planner API. Run in order with a 1000 ms delay (Nominatim allows 1 request per second).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "59116490",
-    "_collection_link": "https://go.postman.co/collection/59116490-d9abaa56-e5b7-4781-92f4-71e2ebd36901?source=collection_link"
+    "_collection_link": "https://go.postman.co/collection/59116490-687a15ad-9e4e-41fe-9347-64a00290e7de?source=collection_link"
   },
   "item": [
     {
@@ -19,8 +19,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Response is an array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
                 ]
               }
             }
@@ -38,8 +38,7 @@
                 "trips",
                 ""
               ]
-            },
-            "description": "All trips."
+            }
           },
           "response": []
         },
@@ -51,12 +50,13 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
                   "const trip = pm.response.json();",
                   "pm.collectionVariables.set(\"tripId\", trip.id);",
-                  "pm.test(\"City was geocoded\", () => {",
+                  "pm.collectionVariables.set(\"countryId\", trip.country.id);",
+                  "pm.test(\"City geocoded, country linked\", () => {",
                   "    pm.expect(trip.latitude).to.be.a(\"number\");",
-                  "    pm.expect(trip.country).to.not.be.empty;",
+                  "    pm.expect(trip.country.code).to.eql(\"TR\");",
                   "});"
                 ]
               }
@@ -72,7 +72,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Istanbul with friends\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
+              "raw": "{\n  \"title\": \"Istanbul with friends\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-20\",\n  \"end_date\": \"2026-11-23\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -89,8 +89,54 @@
                 "trips",
                 ""
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create second trip (same city)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const trip = pm.response.json();",
+                  "pm.collectionVariables.set(\"trip2Id\", trip.id);",
+                  "pm.test(\"Same country object is reused\", () => pm.expect(trip.country.id).to.eql(Number(pm.collectionVariables.get(\"countryId\"))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Istanbul again\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-12-10\",\n  \"end_date\": \"2026-12-11\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "description": "Creates a trip. The city is geocoded (Nominatim) and a day is created for every date. Saves the new id to {{tripId}}."
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ]
+            }
           },
           "response": []
         },
@@ -102,7 +148,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Same trip\", () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get(\"tripId\"))));"
                 ]
               }
@@ -134,7 +180,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -149,7 +195,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Istanbul — long weekend\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-10\",\n  \"end_date\": \"2026-11-13\"\n}",
+              "raw": "{\n  \"title\": \"Istanbul — long weekend\",\n  \"city\": \"Istanbul\",\n  \"start_date\": \"2026-11-20\",\n  \"end_date\": \"2026-11-23\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -167,8 +213,7 @@
                 "{{tripId}}",
                 ""
               ]
-            },
-            "description": "Full update: all writable fields are sent."
+            }
           },
           "response": []
         },
@@ -180,7 +225,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Title changed\", () => pm.expect(pm.response.json().title).to.include(\"Istanbul with friends\"));"
                 ]
               }
@@ -214,8 +259,7 @@
                 "{{tripId}}",
                 ""
               ]
-            },
-            "description": "Only the sent fields change."
+            }
           },
           "response": []
         },
@@ -227,7 +271,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\n\nconst data = pm.response.json();\n// save the first two days for the next requests\npm.collectionVariables.set(\"dayId\", data.days[0].id);\npm.collectionVariables.set(\"day2Id\", data.days[1].id);\n\npm.test(\"One day for every date of the trip\", () => {\n    const start = new Date(data.trip.start_date);\n    const end = new Date(data.trip.end_date);\n    const expected = Math.round((end - start) / 86400000) + 1; \n    pm.expect(data.days.length).to.eql(expected);\n});"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"dayId\", body.days[0].id);",
+                  "pm.collectionVariables.set(\"day2Id\", body.days[1].id);",
+                  "pm.test(\"One day for every date of the trip\", () => {",
+                  "    const expected = Math.round((new Date(body.trip.end_date) - new Date(body.trip.start_date)) / 86400000) + 1;",
+                  "    pm.expect(body.days.length).to.eql(expected);",
+                  "});"
                 ]
               }
             }
@@ -247,8 +298,40 @@
                 "days",
                 ""
               ]
-            },
-            "description": "Days of the trip with places and weather (Open-Meteo, cached for 3 hours). Saves the first two day ids to {{dayId}} and {{day2Id}}."
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Second trip days",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"otherDayId\", pm.response.json().days[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{trip2Id}}/days/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{trip2Id}}",
+                "days",
+                ""
+              ]
+            }
           },
           "response": []
         }
@@ -265,7 +348,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Day knows its trip\", () => pm.expect(pm.response.json().trip).to.eql(Number(pm.collectionVariables.get(\"tripId\"))));"
                 ]
               }
             }
@@ -296,7 +380,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Note saved\", () => pm.expect(pm.response.json().note).to.eql(\"Old city & museums\"));"
                 ]
               }
@@ -342,7 +426,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -375,39 +459,6 @@
                 "{{dayId}}",
                 ""
               ]
-            },
-            "description": "Only `note` is writable; the date comes from the trip and can't be changed."
-          },
-          "response": []
-        },
-        {
-          "name": "List places of a day",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "days",
-                "{{dayId}}",
-                "places",
-                ""
-              ]
             }
           },
           "response": []
@@ -415,7 +466,7 @@
       ]
     },
     {
-      "name": "3. Places",
+      "name": "3. Visits (places of a day)",
       "item": [
         {
           "name": "Add place by name (geocoded)",
@@ -425,10 +476,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
-                  "const place = pm.response.json();",
-                  "pm.collectionVariables.set(\"placeId\", place.id);",
-                  "pm.test(\"Coordinates were found\", () => pm.expect(place.latitude).to.be.a(\"number\"));"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.collectionVariables.set(\"visitId\", v.id);",
+                  "pm.collectionVariables.set(\"placeId\", v.place);",
+                  "pm.test(\"Coordinates were found\", () => pm.expect(v.latitude).to.be.a(\"number\"));"
                 ]
               }
             }
@@ -451,7 +503,7 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -459,11 +511,59 @@
                 "api",
                 "days",
                 "{{dayId}}",
-                "places",
+                "visits",
                 ""
               ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add existing place to another day",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.collectionVariables.set(\"visit2Id\", v.id);",
+                  "pm.test(\"The same place is reused\", () => pm.expect(v.place).to.eql(Number(pm.collectionVariables.get(\"placeId\"))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"place\": {{placeId}},\n  \"time\": \"10:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
-            "description": "No coordinates sent: the server finds them near the trip's city. Saves the id to {{placeId}}."
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{day2Id}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{day2Id}}",
+                "visits",
+                ""
+              ]
+            }
           },
           "response": []
         },
@@ -475,8 +575,10 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"place2Id\", pm.response.json().id);"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const v = pm.response.json();",
+                  "pm.collectionVariables.set(\"visit3Id\", v.id);",
+                  "pm.collectionVariables.set(\"place2Id\", v.place);"
                 ]
               }
             }
@@ -499,6 +601,118 @@
               }
             },
             "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add the same place to the second trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"place\": {{placeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{otherDayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{otherDayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visits of a day",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Two visits\", () => pm.expect(pm.response.json().length).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Places of a day",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Places, not visits\", () => pm.expect(pm.response.json()[0]).to.have.property(\"osm_id\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
               "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
               "host": [
                 "{{baseUrl}}"
@@ -510,20 +724,19 @@
                 "places",
                 ""
               ]
-            },
-            "description": "Coordinates sent: no geocoding. Saves the id to {{place2Id}}."
+            }
           },
           "response": []
         },
         {
-          "name": "Get place",
+          "name": "Get visit",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -532,14 +745,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "raw": "{{baseUrl}}/api/visits/{{visitId}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "places",
-                "{{placeId}}",
+                "visits",
+                "{{visitId}}",
                 ""
               ]
             }
@@ -547,14 +760,14 @@
           "response": []
         },
         {
-          "name": "Mark place visited (PATCH)",
+          "name": "Mark visit visited (PATCH)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Visited\", () => pm.expect(pm.response.json().visited).to.be.true);"
                 ]
               }
@@ -578,14 +791,14 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "raw": "{{baseUrl}}/api/visits/{{visitId}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "places",
-                "{{placeId}}",
+                "visits",
+                "{{visitId}}",
                 ""
               ]
             }
@@ -593,14 +806,14 @@
           "response": []
         },
         {
-          "name": "Move place to another day (PATCH)",
+          "name": "Move visit to another day (PATCH)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Moved\", () => pm.expect(pm.response.json().day).to.eql(Number(pm.collectionVariables.get(\"day2Id\"))));"
                 ]
               }
@@ -624,30 +837,294 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "raw": "{{baseUrl}}/api/visits/{{visit3Id}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "places",
-                "{{placeId}}",
+                "visits",
+                "{{visit3Id}}",
                 ""
               ]
-            },
-            "description": "A place can be moved only to a day of the same trip."
+            }
           },
           "response": []
         },
         {
-          "name": "All places of a trip",
+          "name": "Update visit (PUT)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Returns a list of places\", () => {\r\n    pm.expect(pm.response.json()).to.be.an(\"array\");\r\n});"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Time changed\", () => pm.expect(pm.response.json().time).to.eql(\"22:00:00\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day\": {{day2Id}},\n  \"time\": \"22:00\",\n  \"visited\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/{{visit3Id}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                "{{visit3Id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All visits of a trip, visited only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Not empty\", () => pm.expect(list.length).to.be.above(0));",
+                  "pm.test(\"Only visited\", () => list.forEach(v => pm.expect(v.visited).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/?trip={{tripId}}&visited=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "trip",
+                  "value": "{{tripId}}"
+                },
+                {
+                  "key": "visited",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visits on a date, by category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Only sights on 2026-11-20\", () => pm.response.json().forEach(v => pm.expect(v.category).to.eql(\"sight\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/?date=2026-11-20&category=sight",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-11-20"
+                },
+                {
+                  "key": "category",
+                  "value": "sight"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete visit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/{{visit3Id}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                "{{visit3Id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deleted visit is gone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/{{visit3Id}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                "{{visit3Id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Places (catalog, reverse links)",
+      "item": [
+        {
+          "name": "List places (catalog)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search places",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Found\", () => pm.expect(pm.response.json().map(p => p.name)).to.include(\"Galata Tower\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/?search=galata",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "galata"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Places of a trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Each place once\", () => { const ids = pm.response.json().map(p => p.id); pm.expect(new Set(ids).size).to.eql(ids.length); });"
                 ]
               }
             }
@@ -672,14 +1149,14 @@
           "response": []
         },
         {
-          "name": "Filter places (visited)",
+          "name": "Get place",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "   pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n   pm.test(\"Only visited places\", () => {\r\n       pm.response.json().forEach(p => pm.expect(p.visited).to.eql(true));\r\n   });"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -688,38 +1165,34 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/places/?trip={{tripId}}&visited=true",
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "places",
+                "{{placeId}}",
                 ""
-              ],
-              "query": [
-                {
-                  "key": "trip",
-                  "value": "{{tripId}}"
-                },
-                {
-                  "key": "visited",
-                  "value": "true"
-                }
               ]
             }
           },
           "response": []
         },
         {
-          "name": "Filter places (category)",
+          "name": "Trips of a place (reverse)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\npm.test(\"Only sights\", () => {\r\n    pm.response.json().forEach(p => pm.expect(p.category).to.eql(\"sight\"));\r\n});"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const ids = pm.response.json().map(t => t.id);",
+                  "pm.test(\"The place is in both trips\", () => {",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"tripId\")));",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"trip2Id\")));",
+                  "});"
                 ]
               }
             }
@@ -728,40 +1201,72 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/places/?category=sight",
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/trips/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "places",
+                "{{placeId}}",
+                "trips",
                 ""
-              ],
-              "query": [
-                {
-                  "key": "category",
-                  "value": "sight"
-                }
               ]
             }
           },
           "response": []
         },
         {
-          "name": "Update place (PUT)",
+          "name": "Days of a place (reverse)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const trips = [Number(pm.collectionVariables.get(\"tripId\")), Number(pm.collectionVariables.get(\"trip2Id\"))];",
+                  "const ours = pm.response.json().filter(d => trips.includes(d.trip));",
+                  "pm.test(\"Three days in our two trips (other trips may use the place too)\", () => pm.expect(ours.length).to.eql(3));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "PUT",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/days/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "{{placeId}}",
+                "days",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update place (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Category changed\", () => pm.expect(pm.response.json().category).to.eql(\"food\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
@@ -770,7 +1275,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"day\": {{dayId}},\n  \"name\": \"Our hotel (Karaköy)\",\n  \"latitude\": 41.0245,\n  \"longitude\": 28.9770,\n  \"time\": \"22:00\",\n  \"category\": \"other\",\n  \"visited\": false\n}",
+              "raw": "{\n  \"category\": \"food\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -793,14 +1298,14 @@
           "response": []
         },
         {
-          "name": "Delete place",
+          "name": "Delete unused place",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
                 ]
               }
             }
@@ -824,14 +1329,27 @@
           "response": []
         },
         {
-          "name": "Deleted place is gone",
+          "name": "Popular places",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"At most 50 places, each planned at least once\", () => {",
+                  "    pm.expect(list.length).to.be.at.most(50);",
+                  "    list.forEach(p => pm.expect(p.trips_count).to.be.at.least(1));",
+                  "});",
+                  "pm.test(\"Sorted by number of trips\", () => {",
+                  "    for (let i = 1; i < list.length; i++) pm.expect(list[i - 1].trips_count).to.be.at.least(list[i].trips_count);",
+                  "});",
+                  "pm.test(\"Our place is popular (in 2 trips)\", () => {",
+                  "    const ours = list.find(p => p.id === Number(pm.collectionVariables.get(\"placeId\")));",
+                  "    pm.expect(ours).to.not.be.undefined;",
+                  "    pm.expect(ours.trips_count).to.be.at.least(2);",
+                  "});"
                 ]
               }
             }
@@ -840,14 +1358,236 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/places/{{place2Id}}/",
+              "raw": "{{baseUrl}}/api/places/popular/?limit=50",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "places",
-                "{{place2Id}}",
+                "popular",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Countries",
+      "item": [
+        {
+          "name": "List countries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get country",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Counts trips\", () => pm.expect(pm.response.json().trips_count).to.be.at.least(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark country visa-free (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Visa-free\", () => pm.expect(pm.response.json().visa_free).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visa_free\": true,\n  \"visa_free_days\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visa-free countries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Only visa-free\", () => pm.response.json().forEach(c => pm.expect(c.visa_free).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/?visa_free=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "visa_free",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trips of a country (reverse)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"All in this country\", () => pm.response.json().forEach(t => pm.expect(t.country.id).to.eql(Number(pm.collectionVariables.get(\"countryId\")))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
+                "trips",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Places of a country (reverse)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Contains our place\", () => pm.expect(pm.response.json().map(p => p.id)).to.include(Number(pm.collectionVariables.get(\"placeId\"))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/places/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
+                "places",
                 ""
               ]
             }
@@ -857,7 +1597,630 @@
       ]
     },
     {
-      "name": "4. Validation & errors",
+      "name": "6. Trip filters",
+      "item": [
+        {
+          "name": "Trips to visa-free countries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Not empty\", () => pm.expect(list.length).to.be.above(0));",
+                  "pm.test(\"All visa-free\", () => list.forEach(t => pm.expect(t.country.visa_free).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?visa_free=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "visa_free",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trips by country and city",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Only Turkey, city contains 'ist'\", () => pm.response.json().forEach(t => {",
+                  "    pm.expect(t.country.code).to.eql(\"TR\");",
+                  "    pm.expect(t.city.toLowerCase()).to.include(\"ist\");",
+                  "}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?country=TR&city=ist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "country",
+                  "value": "TR"
+                },
+                {
+                  "key": "city",
+                  "value": "ist"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trips going on a date (filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Every trip covers the date\", () => pm.response.json().forEach(t => {",
+                  "    pm.expect(t.start_date <= \"2026-11-21\" && t.end_date >= \"2026-11-21\").to.be.true;",
+                  "}));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?date=2026-11-21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-11-21"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trips in a period",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Every trip overlaps November 2026\", () => list.forEach(t => {",
+                  "    pm.expect(t.end_date >= \"2026-11-01\" && t.start_date <= \"2026-11-30\").to.be.true;",
+                  "}));",
+                  "pm.test(\"Contains the November trip, not the December one\", () => {",
+                  "    const ids = list.map(t => t.id);",
+                  "    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"tripId\")));",
+                  "    pm.expect(ids).to.not.include(Number(pm.collectionVariables.get(\"trip2Id\")));",
+                  "});",
+                  "pm.test(\"Sorted by start date\", () => {",
+                  "    for (let i = 1; i < list.length; i++) pm.expect(list[i - 1].start_date <= list[i].start_date).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?date_from=2026-11-01&date_to=2026-11-30",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2026-11-01"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2026-11-30"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Trips on a date (endpoint)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Contains the trip\", () => pm.expect(pm.response.json().map(t => t.id)).to.include(Number(pm.collectionVariables.get(\"tripId\"))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dates/2026-11-21/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dates",
+                "2026-11-21",
+                "trips",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search trips",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Found\", () => pm.expect(pm.response.json().length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?search=again",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "again"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upcoming trips (status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "// \"today\" on this computer and in UTC: the server may use another time zone",
+                  "const now = new Date();",
+                  "const days = [new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10), now.toISOString().slice(0, 10)];",
+                  "const list = pm.response.json();",
+                  "pm.test(\"All start after today\", () => list.forEach(t => pm.expect(days.some(d => t.start_date > d)).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?status=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "upcoming"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Current trips (status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "// \"today\" on this computer and in UTC: the server may use another time zone",
+                  "const now = new Date();",
+                  "const days = [new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10), now.toISOString().slice(0, 10)];",
+                  "const list = pm.response.json();",
+                  "pm.test(\"All go today\", () => list.forEach(t => pm.expect(days.some(d => t.start_date <= d && t.end_date >= d)).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?status=current",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "current"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Past trips (status)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "// \"today\" on this computer and in UTC: the server may use another time zone",
+                  "const now = new Date();",
+                  "const days = [new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10), now.toISOString().slice(0, 10)];",
+                  "const list = pm.response.json();",
+                  "pm.test(\"All ended before today\", () => list.forEach(t => pm.expect(days.some(d => t.end_date < d)).to.be.true));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?status=past",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "past"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sort trips: latest first",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Sorted by start date, descending\", () => {",
+                  "    for (let i = 1; i < list.length; i++) pm.expect(list[i - 1].start_date >= list[i].start_date).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?ordering=-start_date",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "-start_date"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Stats, copy, cities",
+      "item": [
+        {
+          "name": "Trip statistics",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json();",
+                  "pm.test(\"Counted by the database\", () => {",
+                  "    pm.expect(s.days).to.eql(4);",
+                  "    pm.expect(s.planned_visits).to.eql(2);",
+                  "    pm.expect(s.unique_places).to.eql(1);",
+                  "    pm.expect(s.visited).to.eql(1);",
+                  "    pm.expect(s.visited_percent).to.eql(50);",
+                  "    pm.expect(s.by_category.sight).to.eql(2);",
+                  "    pm.expect(s.by_day.length).to.eql(4);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/stats/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                "stats",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Copy trip to new dates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const t = pm.response.json();",
+                  "pm.collectionVariables.set(\"copyId\", t.id);",
+                  "pm.test(\"Same length, same plan\", () => {",
+                  "    pm.expect(t.start_date).to.eql(\"2027-03-01\");",
+                  "    pm.expect(t.end_date).to.eql(\"2027-03-04\");",
+                  "    pm.expect(t.city).to.eql(\"Istanbul\");",
+                  "    pm.expect(t.places_count).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_date\": \"2027-03-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/copy/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                "copy",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visits of the copy are not visited",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Two visits, none visited\", () => {",
+                  "    pm.expect(list.length).to.eql(2);",
+                  "    list.forEach(v => pm.expect(v.visited).to.be.false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/?trip={{copyId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "trip",
+                  "value": "{{copyId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const istanbul = pm.response.json().find(c => c.city === \"Istanbul\");",
+                  "pm.test(\"Istanbul with at least 3 trips (two + copy)\", () => pm.expect(istanbul.trips_count).to.be.at.least(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cities of a country",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Only Turkey\", () => pm.response.json().forEach(c => pm.expect(c.country_code).to.eql(\"TR\")));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cities/?country=TR",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cities",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "country",
+                  "value": "TR"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Validation & errors",
       "item": [
         {
           "name": "End date before start date → 400",
@@ -867,8 +2230,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));",
-                  "pm.test(\"Error is about end_date\", () => pm.expect(pm.response.json()).to.have.property(\"end_date\"));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error on end_date\", () => pm.expect(pm.response.json()).to.have.property(\"end_date\"));"
                 ]
               }
             }
@@ -912,7 +2275,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -956,7 +2319,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -993,14 +2356,14 @@
           "response": []
         },
         {
-          "name": "Only latitude sent → 400",
+          "name": "Visit: only latitude → 400",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -1023,7 +2386,7 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/places/",
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1031,7 +2394,7 @@
                 "api",
                 "days",
                 "{{dayId}}",
-                "places",
+                "visits",
                 ""
               ]
             }
@@ -1039,14 +2402,243 @@
           "response": []
         },
         {
-          "name": "Trip not found → 404",
+          "name": "Visit: no place and no name → 400",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"time\": \"10:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visit: place already in this day → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error on place\", () => pm.expect(pm.response.json()).to.have.property(\"place\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"place\": {{placeId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Visit: unknown place → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"place\": 999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/visits/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "days",
+                "{{dayId}}",
+                "visits",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Move visit to another trip's day → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"day\": {{otherDayId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/{{visitId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                "{{visitId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Country: visa-free days without visa-free → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visa_free\": false,\n  \"visa_free_days\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: visa_free=maybe → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -1055,14 +2647,252 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/trips/999999/",
+              "raw": "{{baseUrl}}/api/trips/?visa_free=maybe",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "trips",
-                "999999",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "visa_free",
+                  "value": "maybe"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: unknown category → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/visits/?category=pizza",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "visits",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "pizza"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Period: date_from after date_to → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error on date_from\", () => pm.expect(pm.response.json()).to.have.property(\"date_from\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?date_from=2026-12-31&date_to=2026-12-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "date_from",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "date_to",
+                  "value": "2026-12-01"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: unknown status → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?status=soon",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "soon"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filter: unknown ordering → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/?ordering=price",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "price"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Popular: limit out of range → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/popular/?limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "popular",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Copy without start_date → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Error on start_date\", () => pm.expect(pm.response.json()).to.have.property(\"start_date\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"No dates\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/copy/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                "copy",
                 ""
               ]
             }
@@ -1070,34 +2900,66 @@
           "response": []
         },
         {
-          "name": "Method not allowed → 405",
+          "name": "Stats of unknown trip → 404",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 405\", () => pm.response.to.have.status(405));"
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "DELETE",
+            "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/days/{{dayId}}/",
+              "raw": "{{baseUrl}}/api/trips/999999/stats/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "days",
-                "{{dayId}}",
+                "trips",
+                "999999",
+                "stats",
                 ""
               ]
-            },
-            "description": "Days are deleted together with their trip, not one by one."
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Date in a wrong format → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dates/21-11-2026/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dates",
+                "21-11-2026",
+                "trips",
+                ""
+              ]
+            }
           },
           "response": []
         },
@@ -1109,7 +2971,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "  pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -1138,14 +3000,14 @@
           "response": []
         },
         {
-          "name": "Places: unknown category → 400",
+          "name": "Trip not found → 404",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "  pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
@@ -1154,43 +3016,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/places/?category=pizza",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "places",
-                ""
-              ],
-              "query": [
-                {
-                  "key": "category",
-                  "value": "pizza"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Trip places: unknown trip → 404",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "  pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/999999/places/",
+              "raw": "{{baseUrl}}/api/trips/999999/",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1198,27 +3024,53 @@
                 "api",
                 "trips",
                 "999999",
-                "places",
                 ""
               ]
             }
           },
           "response": []
-        }
-      ]
-    },
-    {
-      "name": "5. Cleanup",
-      "item": [
+        },
         {
-          "name": "Delete trip",
+          "name": "Trips of unknown place → 404",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/999999/trips/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "999999",
+                "trips",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a place that is still planned → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 409\", () => pm.response.to.have.status(409));"
                 ]
               }
             }
@@ -1227,46 +3079,90 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "trips",
-                "{{tripId}}",
+                "places",
+                "{{placeId}}",
                 ""
               ]
-            },
-            "description": "Deletes the trip with its days and places (CASCADE)."
+            }
           },
           "response": []
         },
         {
-          "name": "Deleted trip is gone",
+          "name": "Delete a day → 405",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status is 404\", () => pm.response.to.have.status(404));"
+                  "pm.test(\"Status 405\", () => pm.response.to.have.status(405));"
                 ]
               }
             }
           ],
           "request": {
-            "method": "GET",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
+              "raw": "{{baseUrl}}/api/days/{{dayId}}/",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "trips",
-                "{{tripId}}",
+                "days",
+                "{{dayId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace a country (PUT) → 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 405\", () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"visa_free\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/countries/{{countryId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "countries",
+                "{{countryId}}",
                 ""
               ]
             }
@@ -1276,7 +3172,7 @@
       ]
     },
     {
-      "name": "6. Service",
+      "name": "9. Service",
       "item": [
         {
           "name": "Health check",
@@ -1286,7 +3182,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "  pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n  pm.test(\"DB connected\", () => pm.expect(pm.response.json().db).to.eql(\"connected\"));"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"DB connected\", () => pm.expect(pm.response.json().db).to.eql(\"connected\"));"
                 ]
               }
             }
@@ -1316,7 +3213,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "  pm.test(\"Status 200\", () => pm.response.to.have.status(200));\r\n  pm.test(\"Coordinates found\", () => {\r\n      const g = pm.response.json();\r\n      pm.expect(g.latitude).to.be.a(\"number\");\r\n      pm.expect(g.longitude).to.be.a(\"number\");\r\n  });"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Coordinates found\", () => pm.expect(pm.response.json().latitude).to.be.a(\"number\"));"
                 ]
               }
             }
@@ -1345,6 +3243,197 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "10. Cleanup",
+      "item": [
+        {
+          "name": "Delete the copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{copyId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{copyId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete second trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{trip2Id}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{trip2Id}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deleted trip is gone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/trips/{{tripId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "trips",
+                "{{tripId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Place stays in the catalog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "{{placeId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete the place if no other trip uses it",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Deleted (204), or kept because another trip still plans it (409)\", () => pm.expect(pm.response.code).to.be.oneOf([204, 409]));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/places/{{placeId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "places",
+                "{{placeId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -1357,11 +3446,39 @@
       "value": ""
     },
     {
+      "key": "trip2Id",
+      "value": ""
+    },
+    {
+      "key": "copyId",
+      "value": ""
+    },
+    {
+      "key": "countryId",
+      "value": ""
+    },
+    {
       "key": "dayId",
       "value": ""
     },
     {
       "key": "day2Id",
+      "value": ""
+    },
+    {
+      "key": "otherDayId",
+      "value": ""
+    },
+    {
+      "key": "visitId",
+      "value": ""
+    },
+    {
+      "key": "visit2Id",
+      "value": ""
+    },
+    {
+      "key": "visit3Id",
       "value": ""
     },
     {

@@ -22,7 +22,7 @@ async function loadTrips() {
   $('trips').innerHTML = state.trips.map(t => `
     <div class="trip ${t.id === state.tripId ? 'active' : ''}" onclick="openTrip(${t.id})">
       <b>${esc(t.title)}</b>
-      <small>${esc(t.city)}${t.country ? ', ' + esc(t.country) : ''} · ${fmtDate(t.start_date)} – ${fmtDate(t.end_date)} · ${t.places_count} places</small>
+      <small>${esc(t.city)}${t.country ? ', ' + esc(t.country.name) : ''} · ${fmtDate(t.start_date)} – ${fmtDate(t.end_date)} · ${t.places_count} places</small>
     </div>`).join('') || '<p class="muted">No trips yet.</p>';
 }
 
@@ -48,7 +48,7 @@ function render() {
     <div class="head">
       <div>
         <h3>${esc(trip.title)}</h3>
-        <p>${esc(trip.city)}${trip.country ? ', ' + esc(trip.country) : ''} · ${fmtDate(trip.start_date)} – ${fmtDate(trip.end_date)}
+        <p>${esc(trip.city)}${trip.country ? ', ' + esc(trip.country.name) : ''}${trip.country && trip.country.visa_free ? ' · 🛂 visa-free' : ''} · ${fmtDate(trip.start_date)} – ${fmtDate(trip.end_date)}
            ${daysLeft > 0 ? ` · starts in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : ''}</p>
       </div>
       <button class="ghost" onclick="deleteTrip()">Delete trip</button>
@@ -66,7 +66,7 @@ function render() {
     <div id="map"></div>
     <div class="places">
       ${day && day.note ? `<p class="muted">📝 ${esc(day.note)}</p>` : ''}
-      ${day && day.places.length ? day.places.map((p, i) => `
+      ${day && day.visits.length ? day.visits.map((p, i) => `
         <div class="place ${p.visited ? 'visited' : ''}">
           <div class="num">${i + 1}</div>
           <div class="info"><b>${CAT[p.category] || '📍'} ${esc(p.name)}</b>
@@ -100,7 +100,7 @@ function drawMap(trip, day) {
     attribution: '&copy; OpenStreetMap contributors',
     referrerPolicy: 'strict-origin-when-cross-origin'
   }).addTo(map);
-  const places = day ? day.places : [];
+  const places = day ? day.visits  : [];
   const points = places.map(p => [p.latitude, p.longitude]);
   places.forEach((p, i) => {
     const icon = L.divIcon({ className: '', html: `<div class="pin ${p.visited ? 'done' : ''}"><span>${i + 1}</span></div>`, iconSize: [28, 28], iconAnchor: [14, 28] });
@@ -135,7 +135,7 @@ async function addPlace(e) {
   }
   $('place-err').textContent = state.picked ? 'Saving…' : 'Searching on the map…';
   try {
-    await api(`/days/${state.dayId}/places/`, { method: 'POST', body: JSON.stringify(body) });
+    await api(`/days/${state.dayId}/visits/`, { method: 'POST', body: JSON.stringify(body) });
     state.picked = null;
     await openTrip(state.tripId, true);
   } catch (err) { $('place-err').textContent = err.message; }
@@ -144,17 +144,17 @@ async function addPlace(e) {
 function clearPick() { state.picked = null; render(); }
 
 async function toggleVisited(id, visited) {
-  await api(`/places/${id}/`, { method: 'PATCH', body: JSON.stringify({ visited }) });
+  await api(`/visits/${id}/`, { method: 'PATCH', body: JSON.stringify({ visited }) });
   openTrip(state.tripId, true);
 }
 
 async function changeTime(id, value) {
-  await api(`/places/${id}/`, { method: 'PATCH', body: JSON.stringify({ time: value || null }) });
+  await api(`/visits/${id}/`, { method: 'PATCH', body: JSON.stringify({ time: value || null }) });
   openTrip(state.tripId, true);
 }
 
 async function deletePlace(id) {
-  await api(`/places/${id}/`, { method: 'DELETE' });
+  await api(`/visits/${id}/`, { method: 'DELETE' });
   openTrip(state.tripId, true);
 }
 

@@ -5,11 +5,178 @@ info:
   description: 'Plan trips day by day: places with coordinates (Nominatim) and weather
     for every day (Open-Meteo).'
 paths:
+  /api/cities/:
+    get:
+      operationId: cities_list
+      description: GET /api/cities/ — every city we travel to, with the number of
+        trips (GROUP BY city).
+      summary: Cities of all trips
+      parameters:
+      - in: query
+        name: country
+        schema:
+          type: string
+        description: Country ISO code, e.g. TR
+      tags:
+      - cities
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/City'
+          description: ''
+  /api/countries/:
+    get:
+      operationId: countries_list
+      description: GET /api/countries/ — countries of all trips (created automatically
+        when a city is geocoded).
+      parameters:
+      - in: query
+        name: visa_free
+        schema:
+          type: boolean
+        description: Only visa-free (true) or visa (false) countries
+      tags:
+      - countries
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Country'
+          description: ''
+  /api/countries/{id}/:
+    get:
+      operationId: countries_retrieve
+      description: 'GET / PATCH /api/countries/{id}/ — e.g. mark a country visa-free:
+        {"visa_free": true, "visa_free_days": 30}.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - countries
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+    patch:
+      operationId: countries_partial_update
+      description: 'GET / PATCH /api/countries/{id}/ — e.g. mark a country visa-free:
+        {"visa_free": true, "visa_free_days": 30}.'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - countries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCountry'
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+  /api/countries/{id}/places/:
+    get:
+      operationId: countries_places_list
+      description: GET /api/countries/{id}/places/ — places planned in trips to this
+        country.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - countries
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Place'
+          description: ''
+  /api/countries/{id}/trips/:
+    get:
+      operationId: countries_trips_list
+      description: GET /api/countries/{id}/trips/ — all trips to this country.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - countries
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/dates/{date}/trips/:
+    get:
+      operationId: dates_trips_list
+      description: GET /api/dates/{YYYY-MM-DD}/trips/ — trips that go on this date.
+      parameters:
+      - in: path
+        name: date
+        schema:
+          type: string
+        required: true
+      tags:
+      - dates
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+          description: ''
   /api/days/{id}/:
     get:
       operationId: days_retrieve
-      description: 'GET / PATCH /api/days/<id>/ — one day, e.g. to set a note: {"note":
-        "museum day"}.'
+      description: 'GET / PUT / PATCH /api/days/{id}/ — one day, e.g. to set a note:
+        {"note": "museum day"}.'
       parameters:
       - in: path
         name: id
@@ -29,8 +196,8 @@ paths:
           description: ''
     put:
       operationId: days_update
-      description: 'GET / PATCH /api/days/<id>/ — one day, e.g. to set a note: {"note":
-        "museum day"}.'
+      description: 'GET / PUT / PATCH /api/days/{id}/ — one day, e.g. to set a note:
+        {"note": "museum day"}.'
       parameters:
       - in: path
         name: id
@@ -55,8 +222,8 @@ paths:
           description: ''
     patch:
       operationId: days_partial_update
-      description: 'GET / PATCH /api/days/<id>/ — one day, e.g. to set a note: {"note":
-        "museum day"}.'
+      description: 'GET / PUT / PATCH /api/days/{id}/ — one day, e.g. to set a note:
+        {"note": "museum day"}.'
       parameters:
       - in: path
         name: id
@@ -82,8 +249,8 @@ paths:
   /api/days/{id}/places/:
     get:
       operationId: days_places_list
-      description: GET /api/days/<id>/places/ — places of a day. POST — add a place
-        (found by name if no coordinates).
+      description: GET /api/days/{id}/places/ — places of a day (through the many-to-many
+        link).
       parameters:
       - in: path
         name: id
@@ -103,10 +270,34 @@ paths:
                 items:
                   $ref: '#/components/schemas/Place'
           description: ''
+  /api/days/{id}/visits/:
+    get:
+      operationId: days_visits_list
+      description: GET /api/days/{id}/visits/ — the plan of a day. POST — add a place
+        to the day.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - days
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Visit'
+          description: ''
     post:
-      operationId: days_places_create
-      description: GET /api/days/<id>/places/ — places of a day. POST — add a place
-        (found by name if no coordinates).
+      operationId: days_visits_create
+      description: GET /api/days/{id}/visits/ — the plan of a day. POST — add a place
+        to the day.
       parameters:
       - in: path
         name: id
@@ -119,8 +310,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Place'
-        required: true
+              $ref: '#/components/schemas/VisitCreate'
       security:
       - {}
       responses:
@@ -128,7 +318,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Place'
+                $ref: '#/components/schemas/Visit'
           description: ''
   /api/geocode/:
     get:
@@ -172,8 +362,7 @@ paths:
   /api/places/:
     get:
       operationId: places_list
-      description: GET /api/places/?trip=&visited=&category= — all places with optional
-        filters.
+      description: GET /api/places/?category=&search=&trip= — all places of the catalog.
       parameters:
       - in: query
         name: category
@@ -186,17 +375,17 @@ paths:
           - shopping
           - sight
           - walk
-        description: Place category
+        description: Category of the place
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Name contains the text
       - in: query
         name: trip
         schema:
           type: integer
-        description: Only places of this trip
-      - in: query
-        name: visited
-        schema:
-          type: boolean
-        description: true / false
+        description: Only places planned in this trip
       tags:
       - places
       security:
@@ -213,8 +402,8 @@ paths:
   /api/places/{id}/:
     get:
       operationId: places_retrieve
-      description: GET / PATCH / DELETE /api/places/<id>/ — mark visited, move to
-        another day, delete.
+      description: GET / PUT / PATCH / DELETE /api/places/{id}/. A place that is planned
+        in some day can't be deleted (409).
       parameters:
       - in: path
         name: id
@@ -230,12 +419,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceMove'
+                $ref: '#/components/schemas/Place'
           description: ''
     put:
       operationId: places_update
-      description: GET / PATCH / DELETE /api/places/<id>/ — mark visited, move to
-        another day, delete.
+      description: GET / PUT / PATCH / DELETE /api/places/{id}/. A place that is planned
+        in some day can't be deleted (409).
       parameters:
       - in: path
         name: id
@@ -248,7 +437,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PlaceMove'
+              $ref: '#/components/schemas/Place'
         required: true
       security:
       - {}
@@ -257,12 +446,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceMove'
+                $ref: '#/components/schemas/Place'
           description: ''
     patch:
       operationId: places_partial_update
-      description: GET / PATCH / DELETE /api/places/<id>/ — mark visited, move to
-        another day, delete.
+      description: GET / PUT / PATCH / DELETE /api/places/{id}/. A place that is planned
+        in some day can't be deleted (409).
       parameters:
       - in: path
         name: id
@@ -275,7 +464,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedPlaceMove'
+              $ref: '#/components/schemas/PatchedPlace'
       security:
       - {}
       responses:
@@ -283,12 +472,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PlaceMove'
+                $ref: '#/components/schemas/Place'
           description: ''
     delete:
       operationId: places_destroy
-      description: GET / PATCH / DELETE /api/places/<id>/ — mark visited, move to
-        another day, delete.
+      description: GET / PUT / PATCH / DELETE /api/places/{id}/. A place that is planned
+        in some day can't be deleted (409).
       parameters:
       - in: path
         name: id
@@ -302,11 +491,140 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/places/{id}/days/:
+    get:
+      operationId: places_days_list
+      description: GET /api/places/{id}/days/ — days (of any trip) when this place
+        is planned.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - places
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DayShort'
+          description: ''
+  /api/places/{id}/trips/:
+    get:
+      operationId: places_trips_list
+      description: GET /api/places/{id}/trips/ — trips that visit this place.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - places
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+          description: ''
+  /api/places/popular/:
+    get:
+      operationId: places_popular_list
+      description: GET /api/places/popular/ — places planned in the most trips.
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: How many places, 1–50 (default 10)
+      tags:
+      - places
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PopularPlace'
+          description: ''
   /api/trips/:
     get:
       operationId: trips_list
-      description: GET /api/trips/ — list of trips. POST /api/trips/ — create a trip
-        (city is geocoded, days are created).
+      description: GET /api/trips/ — trips with filters. POST — create a trip (the
+        city is geocoded, days are created).
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+        description: City contains the text, e.g. ist
+      - in: query
+        name: country
+        schema:
+          type: string
+        description: Country ISO code, e.g. TR
+      - in: query
+        name: date
+        schema:
+          type: string
+        description: Trips that go on this date, YYYY-MM-DD
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: 'Period start, YYYY-MM-DD: trips that end on or after it'
+      - in: query
+        name: date_to
+        schema:
+          type: string
+        description: 'Period end, YYYY-MM-DD: trips that start on or before it'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum:
+          - -city
+          - -created_at
+          - -start_date
+          - -title
+          - city
+          - created_at
+          - start_date
+          - title
+        description: Sort order, - means descending
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search in title and city
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - current
+          - past
+          - upcoming
+        description: Compared with today
+      - in: query
+        name: visa_free
+        schema:
+          type: boolean
+        description: Only trips to visa-free (true) or visa (false) countries
       tags:
       - trips
       security:
@@ -322,8 +640,67 @@ paths:
           description: ''
     post:
       operationId: trips_create
-      description: GET /api/trips/ — list of trips. POST /api/trips/ — create a trip
-        (city is geocoded, days are created).
+      description: GET /api/trips/ — trips with filters. POST — create a trip (the
+        city is geocoded, days are created).
+      parameters:
+      - in: query
+        name: city
+        schema:
+          type: string
+        description: City contains the text, e.g. ist
+      - in: query
+        name: country
+        schema:
+          type: string
+        description: Country ISO code, e.g. TR
+      - in: query
+        name: date
+        schema:
+          type: string
+        description: Trips that go on this date, YYYY-MM-DD
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: 'Period start, YYYY-MM-DD: trips that end on or after it'
+      - in: query
+        name: date_to
+        schema:
+          type: string
+        description: 'Period end, YYYY-MM-DD: trips that start on or before it'
+      - in: query
+        name: ordering
+        schema:
+          type: string
+          enum:
+          - -city
+          - -created_at
+          - -start_date
+          - -title
+          - city
+          - created_at
+          - start_date
+          - title
+        description: Sort order, - means descending
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search in title and city
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - current
+          - past
+          - upcoming
+        description: Compared with today
+      - in: query
+        name: visa_free
+        schema:
+          type: boolean
+        description: Only trips to visa-free (true) or visa (false) countries
       tags:
       - trips
       requestBody:
@@ -344,7 +721,7 @@ paths:
   /api/trips/{id}/:
     get:
       operationId: trips_retrieve
-      description: GET / PATCH / PUT / DELETE /api/trips/<id>/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
       parameters:
       - in: path
         name: id
@@ -364,7 +741,7 @@ paths:
           description: ''
     put:
       operationId: trips_update
-      description: GET / PATCH / PUT / DELETE /api/trips/<id>/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
       parameters:
       - in: path
         name: id
@@ -390,7 +767,7 @@ paths:
           description: ''
     patch:
       operationId: trips_partial_update
-      description: GET / PATCH / PUT / DELETE /api/trips/<id>/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
       parameters:
       - in: path
         name: id
@@ -415,7 +792,7 @@ paths:
           description: ''
     delete:
       operationId: trips_destroy
-      description: GET / PATCH / PUT / DELETE /api/trips/<id>/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
       parameters:
       - in: path
         name: id
@@ -429,12 +806,40 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/trips/{id}/copy/:
+    post:
+      operationId: trips_copy_create
+      description: POST /api/trips/{id}/copy/ — a new trip with the same city and
+        plan, starting on another date.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - trips
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripCopy'
+        required: true
+      security:
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: ''
   /api/trips/{id}/days/:
     get:
       operationId: trips_days_retrieve
-      description: GET /api/trips/<id>/days/ — days with places and weather. Stale
+      description: GET /api/trips/{id}/days/ — days with visits and weather. Stale
         weather is refreshed here.
-      summary: Days of a trip with places and weather
+      summary: Days of a trip with visits and weather
       parameters:
       - in: path
         name: id
@@ -455,8 +860,8 @@ paths:
   /api/trips/{id}/places/:
     get:
       operationId: trips_places_list
-      description: GET /api/trips/{id}/places/ — all places of a trip, across all
-        its days.
+      description: GET /api/trips/{id}/places/ — places planned in this trip (each
+        place once).
       parameters:
       - in: path
         name: id
@@ -476,6 +881,166 @@ paths:
                 items:
                   $ref: '#/components/schemas/Place'
           description: ''
+  /api/trips/{id}/stats/:
+    get:
+      operationId: trips_stats_retrieve
+      description: GET /api/trips/{id}/stats/ — numbers of a trip, counted by the
+        database (aggregate / annotate).
+      summary: Statistics of a trip
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - trips
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripStats'
+          description: ''
+  /api/visits/:
+    get:
+      operationId: visits_list
+      description: GET /api/visits/?trip=&date=&visited=&category= — all planned places
+        with filters.
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+          enum:
+          - food
+          - museum
+          - other
+          - shopping
+          - sight
+          - walk
+        description: Category of the place
+      - in: query
+        name: date
+        schema:
+          type: string
+        description: Only visits on this date, YYYY-MM-DD
+      - in: query
+        name: trip
+        schema:
+          type: integer
+        description: Only visits of this trip
+      - in: query
+        name: visited
+        schema:
+          type: boolean
+        description: true / false
+      tags:
+      - visits
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Visit'
+          description: ''
+  /api/visits/{id}/:
+    get:
+      operationId: visits_retrieve
+      description: GET / PUT / PATCH / DELETE /api/visits/{id}/ — mark visited, change
+        time, move to another day.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - visits
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+          description: ''
+    put:
+      operationId: visits_update
+      description: GET / PUT / PATCH / DELETE /api/visits/{id}/ — mark visited, change
+        time, move to another day.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - visits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Visit'
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+          description: ''
+    patch:
+      operationId: visits_partial_update
+      description: GET / PUT / PATCH / DELETE /api/visits/{id}/ — mark visited, change
+        time, move to another day.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - visits
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedVisit'
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+          description: ''
+    delete:
+      operationId: visits_destroy
+      description: GET / PUT / PATCH / DELETE /api/visits/{id}/ — mark visited, change
+        time, move to another day.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - visits
+      security:
+      - {}
+      responses:
+        '204':
+          description: No response body
 components:
   schemas:
     CategoryEnum:
@@ -494,10 +1059,77 @@ components:
         * `walk` - Walk
         * `shopping` - Shopping
         * `other` - Other
+    City:
+      type: object
+      properties:
+        city:
+          type: string
+        country:
+          type: string
+          nullable: true
+        country_code:
+          type: string
+          nullable: true
+        trips_count:
+          type: integer
+      required:
+      - city
+      - country
+      - country_code
+      - trips_count
+    Country:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        visa_free:
+          type: boolean
+        visa_free_days:
+          type: integer
+          maximum: 365
+          minimum: 1
+          nullable: true
+        trips_count:
+          type: integer
+          readOnly: true
+      required:
+      - code
+      - id
+      - name
+      - trips_count
+    CountryShort:
+      type: object
+      description: Country inside a trip.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          maxLength: 2
+        name:
+          type: string
+          maxLength: 80
+        visa_free:
+          type: boolean
+      required:
+      - code
+      - id
+      - name
     Day:
       type: object
       properties:
         id:
+          type: integer
+          readOnly: true
+        trip:
           type: integer
           readOnly: true
         date:
@@ -512,16 +1144,44 @@ components:
           - $ref: '#/components/schemas/Weather'
           nullable: true
           readOnly: true
-        places:
+        visits:
           type: array
           items:
-            $ref: '#/components/schemas/Place'
+            $ref: '#/components/schemas/Visit'
           readOnly: true
       required:
       - date
       - id
-      - places
+      - trip
+      - visits
       - weather
+    DayShort:
+      type: object
+      description: A day with its trip, for lists like "days when this place is visited".
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        date:
+          type: string
+          format: date
+        trip:
+          type: integer
+        trip_title:
+          type: string
+          readOnly: true
+        city:
+          type: string
+          readOnly: true
+        note:
+          type: string
+          maxLength: 200
+      required:
+      - city
+      - date
+      - id
+      - trip
+      - trip_title
     GeocodeResponse:
       type: object
       properties:
@@ -537,12 +1197,18 @@ components:
           type: string
         country:
           type: string
+        country_code:
+          type: string
+        osm_id:
+          type: string
       required:
       - address
       - country
+      - country_code
       - latitude
       - longitude
       - name
+      - osm_id
     HealthResponse:
       type: object
       properties:
@@ -553,10 +1219,35 @@ components:
       required:
       - db
       - status
+    PatchedCountry:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          type: string
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        visa_free:
+          type: boolean
+        visa_free_days:
+          type: integer
+          maximum: 365
+          minimum: 1
+          nullable: true
+        trips_count:
+          type: integer
+          readOnly: true
     PatchedDay:
       type: object
       properties:
         id:
+          type: integer
+          readOnly: true
+        trip:
           type: integer
           readOnly: true
         date:
@@ -571,21 +1262,18 @@ components:
           - $ref: '#/components/schemas/Weather'
           nullable: true
           readOnly: true
-        places:
+        visits:
           type: array
           items:
-            $ref: '#/components/schemas/Place'
+            $ref: '#/components/schemas/Visit'
           readOnly: true
-    PatchedPlaceMove:
+    PatchedPlace:
       type: object
-      description: 'Like PlaceSerializer, but `day` can be changed: move a place to
-        another day of the same trip.'
+      description: A place from the shared catalog.
       properties:
         id:
           type: integer
           readOnly: true
-        day:
-          type: integer
         name:
           type: string
           maxLength: 120
@@ -602,14 +1290,16 @@ components:
           format: double
           maximum: 180
           minimum: -180
-        time:
-          type: string
-          format: time
-          nullable: true
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visited:
-          type: boolean
+        osm_id:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedTrip:
       type: object
       properties:
@@ -623,7 +1313,8 @@ components:
           type: string
           maxLength: 120
         country:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/CountryShort'
           readOnly: true
         latitude:
           type: number
@@ -646,15 +1337,51 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PatchedVisit:
+      type: object
+      description: A place planned for a day. Place fields are shown flat, so a visit
+        is easy to draw on the map.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        day:
+          type: integer
+        place:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        address:
+          type: string
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          readOnly: true
+        longitude:
+          type: number
+          format: double
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        time:
+          type: string
+          format: time
+          nullable: true
+        visited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     Place:
       type: object
-      description: 'Coordinates are optional: if they are missing, the server finds
-        them by the place name.'
+      description: A place from the shared catalog.
       properties:
         id:
-          type: integer
-          readOnly: true
-        day:
           type: integer
           readOnly: true
         name:
@@ -673,29 +1400,32 @@ components:
           format: double
           maximum: 180
           minimum: -180
-        time:
-          type: string
-          format: time
-          nullable: true
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visited:
-          type: boolean
+        osm_id:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
       required:
       - address
-      - day
+      - created_at
       - id
+      - latitude
+      - longitude
       - name
-    PlaceMove:
+      - osm_id
+    PopularPlace:
       type: object
-      description: 'Like PlaceSerializer, but `day` can be changed: move a place to
-        another day of the same trip.'
+      description: A place with how often it is planned (numbers come from .annotate()
+        in the view).
       properties:
         id:
           type: integer
           readOnly: true
-        day:
-          type: integer
         name:
           type: string
           maxLength: 120
@@ -712,18 +1442,32 @@ components:
           format: double
           maximum: 180
           minimum: -180
-        time:
-          type: string
-          format: time
-          nullable: true
         category:
           $ref: '#/components/schemas/CategoryEnum'
-        visited:
-          type: boolean
+        osm_id:
+          type: string
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        trips_count:
+          type: integer
+          readOnly: true
+        visits_count:
+          type: integer
+          readOnly: true
       required:
       - address
+      - created_at
       - id
+      - latitude
+      - longitude
       - name
+      - osm_id
+      - trips_count
+      - visits_count
     Trip:
       type: object
       properties:
@@ -737,7 +1481,8 @@ components:
           type: string
           maxLength: 120
         country:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/CountryShort'
           readOnly: true
         latitude:
           type: number
@@ -770,6 +1515,19 @@ components:
       - longitude
       - places_count
       - start_date
+    TripCopy:
+      type: object
+      description: 'Body of POST /api/trips/{id}/copy/: new dates (the length stays
+        the same) and an optional title.'
+      properties:
+        start_date:
+          type: string
+          format: date
+        title:
+          type: string
+          maxLength: 120
+      required:
+      - start_date
     TripDaysResponse:
       type: object
       properties:
@@ -785,6 +1543,139 @@ components:
       - days
       - trip
       - weather_available
+    TripStats:
+      type: object
+      properties:
+        trip:
+          type: integer
+        title:
+          type: string
+        days:
+          type: integer
+        planned_visits:
+          type: integer
+        unique_places:
+          type: integer
+        visited:
+          type: integer
+        visited_percent:
+          type: integer
+        rainy_days:
+          type: integer
+        by_category:
+          type: object
+          additionalProperties:
+            type: integer
+        by_day:
+          type: array
+          items:
+            $ref: '#/components/schemas/TripStatsDay'
+      required:
+      - by_category
+      - by_day
+      - days
+      - planned_visits
+      - rainy_days
+      - title
+      - trip
+      - unique_places
+      - visited
+      - visited_percent
+    TripStatsDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        planned:
+          type: integer
+        visited:
+          type: integer
+      required:
+      - date
+      - planned
+      - visited
+    Visit:
+      type: object
+      description: A place planned for a day. Place fields are shown flat, so a visit
+        is easy to draw on the map.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        day:
+          type: integer
+        place:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        address:
+          type: string
+          readOnly: true
+        latitude:
+          type: number
+          format: double
+          readOnly: true
+        longitude:
+          type: number
+          format: double
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        time:
+          type: string
+          format: time
+          nullable: true
+        visited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - address
+      - category
+      - created_at
+      - id
+      - latitude
+      - longitude
+      - name
+      - place
+    VisitCreate:
+      type: object
+      description: |-
+        Body of POST /api/days/{id}/visits/. Three ways to add a place to a day:
+        1. an existing place:            {"place": 7}
+        2. a new place by name:          {"name": "Galata Tower"}           (found on the map near the trip's city)
+        3. a new place with coordinates: {"name": "Our hotel", "latitude": 41.03, "longitude": 28.98}
+      properties:
+        place:
+          type: integer
+        name:
+          type: string
+          maxLength: 120
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        latitude:
+          type: number
+          format: double
+          maximum: 90
+          minimum: -90
+        longitude:
+          type: number
+          format: double
+          maximum: 180
+          minimum: -180
+        time:
+          type: string
+          format: time
+          nullable: true
+        visited:
+          type: boolean
+          default: false
     Weather:
       type: object
       description: Shape of the "weather" field in a day (used only for API docs).

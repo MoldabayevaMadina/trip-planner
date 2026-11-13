@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from .models import Day, Trip
 
-FORECAST_DAYS = 15  # Open-Meteo gives a daily forecast roughly two weeks ahead
+FORECAST_DAYS = 15  # Open-Meteo gives a daily forecast about two weeks ahead
 
 class ExternalServiceError(Exception):
     """The external service did not answer (timeout, network error, 5xx)."""
@@ -25,6 +25,8 @@ class GeoResult:
     name: str
     address: str
     country: str
+    country_code: str  
+    osm_id: str 
 
 
 def geocode(query: str) -> GeoResult | None:
@@ -44,12 +46,16 @@ def geocode(query: str) -> GeoResult | None:
     if not results:
         return None
     first = results[0]
+    address = first.get("address") or {}
+    osm_type, osm_number = first.get("osm_type"), first.get("osm_id")
     return GeoResult(
         latitude=float(first["lat"]),
         longitude=float(first["lon"]),
         name=first.get("name") or query,
         address=first.get("display_name", ""),
-        country=(first.get("address") or {}).get("country", ""),
+        country=address.get("country", ""),
+        country_code=(address.get("country_code") or "").upper(),
+        osm_id=f"{osm_type}/{osm_number}" if osm_type and osm_number else "",
     )
 
 
@@ -119,7 +125,6 @@ def refresh_weather(trip: Trip) -> bool:
 
     ok = True
     stale.sort(key=lambda d: plans[d.id][0])
-    # one request per source type, covering the whole date range
     for source, group in groupby(stale, key=lambda d: plans[d.id][0]):
         group = list(group)
         query_dates = [plans[d.id][1] for d in group]
