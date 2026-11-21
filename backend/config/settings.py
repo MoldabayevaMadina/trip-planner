@@ -137,16 +137,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = "trips.User"
 
-
-
-
-GEOCODER_URL = "https://nominatim.openstreetmap.org/search"
+GEOCODER_URL = os.environ.get("GEOCODER_URL", "https://nominatim.openstreetmap.org/search")
 GEOCODER_USER_AGENT = os.environ.get("GEOCODER_USER_AGENT", "TripPlanner/1.0 (student project)")
-HTTP_TIMEOUT = 6 
 
-WEATHER_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
-WEATHER_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-WEATHER_CACHE_MINUTES = 180
+PHOTON_URL = os.environ.get("PHOTON_URL", "https://photon.komoot.io/api/")
+
+WEATHER_FORECAST_URL = os.environ.get("WEATHER_FORECAST_URL", "https://api.open-meteo.com/v1/forecast")
+WEATHER_ARCHIVE_URL = os.environ.get("WEATHER_ARCHIVE_URL", "https://archive-api.open-meteo.com/v1/archive")
+WEATHER_CACHE_MINUTES = int(os.environ.get("WEATHER_CACHE_MINUTES", "180"))
+
+HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "6"))
+
+
 
 REST_FRAMEWORK = {
 

@@ -32,6 +32,14 @@ services:
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
       DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+
+      GEOCODER_URL: "${GEOCODER_URL:-https://nominatim.openstreetmap.org/search}"
+      GEOCODER_USER_AGENT: "${GEOCODER_USER_AGENT:-TripPlanner/1.0 (student project)}"
+      PHOTON_URL: "${PHOTON_URL:-https://photon.komoot.io/api/}"
+      WEATHER_FORECAST_URL: "${WEATHER_FORECAST_URL:-https://api.open-meteo.com/v1/forecast}"
+      WEATHER_ARCHIVE_URL: "${WEATHER_ARCHIVE_URL:-https://archive-api.open-meteo.com/v1/archive}"
+      WEATHER_CACHE_MINUTES: "${WEATHER_CACHE_MINUTES:-180}"
+      HTTP_TIMEOUT: "${HTTP_TIMEOUT:-6}"
     ports:
       - "${HOST_PORT:-8000}:8000"
     depends_on:
