@@ -242,7 +242,7 @@ input[type="checkbox"] { width: 18px; height: 18px; padding: 0; }
 .day-head h2 { margin: 6px 0 0; font-size: 22px; }
 
 .add-place { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; }
-.add-place > input:first-of-type { grid-column: 1 / -1; }      /* the name takes the whole first row */
+.add-place > .combo { grid-column: 1 / -1; }      /* the name takes the whole first row */
 .add-place input, .add-place select { min-width: 0; width: 100%; }
 
 .full-row { grid-column: 1 / -1; margin: 0; }
@@ -293,6 +293,28 @@ input[type="checkbox"] { width: 18px; height: 18px; padding: 0; }
   padding: 12px; border-radius: 14px;
   background: var(--pink-soft); border: 1px solid rgba(232, 121, 249, 0.3);
 }
+
+
+/* ---------- suggestions dropdown ---------- */
+.combo { position: relative; }
+.combo input { width: 100%; }
+.suggestions {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1100;
+  list-style: none; margin: 0; padding: 6px;
+  max-height: 320px; overflow-y: auto;
+  background: #110f26; border: 1px solid var(--border-strong);
+  border-radius: 14px; box-shadow: var(--shadow);
+}
+.suggestion { display: grid; gap: 2px; padding: 9px 12px; border-radius: 10px; cursor: pointer; }
+.suggestion.active { background: var(--primary-soft); }
+.suggestion.muted { cursor: default; color: var(--muted); }
+.suggestion-name { font-weight: 600; }
+.chosen { color: var(--primary); margin: 0; }
+.link-btn {
+  border: none; background: none; padding: 0 6px;
+  color: var(--muted); text-decoration: underline; font: inherit; cursor: pointer;
+}
+.link-btn:hover { color: var(--text); }
 
 .pin {
   width: 30px; height: 30px; border-radius: 50%;

@@ -90,10 +90,12 @@ class VisitSerializer(serializers.ModelSerializer):
 
 class VisitCreateSerializer(serializers.Serializer):
     """
-    Body of POST /api/days/{id}/visits/. Three ways to add a place to a day:
+    Body of POST /api/days/{id}/visits/. Ways to add a place to a day:
     1. an existing place:            {"place": 7}
     2. a new place by name:          {"name": "Galata Tower"}           (found on the map near the trip's city)
     3. a new place with coordinates: {"name": "Our hotel", "latitude": 41.03, "longitude": 28.98}
+    4. a picked suggestion:          {"name": "Starbucks", "latitude": ..., "longitude": ...,
+                                      "address": "...", "osm_id": "node/123"}   (stored once per osm_id)
     """
 
     place = serializers.PrimaryKeyRelatedField(queryset=Place.objects.all(), required=False)
@@ -101,6 +103,8 @@ class VisitCreateSerializer(serializers.Serializer):
     category = serializers.ChoiceField(choices=Place.Category.choices, required=False)
     latitude = serializers.FloatField(required=False, min_value=-90, max_value=90)
     longitude = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    address = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    osm_id = serializers.CharField(max_length=40, required=False, allow_blank=True)
     time = serializers.TimeField(required=False, allow_null=True)
     visited = serializers.BooleanField(required=False, default=False)
 
@@ -111,6 +115,8 @@ class VisitCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Send either `place` or a new place (`name`), not both.")
         if ("latitude" in attrs) != ("longitude" in attrs):
             raise serializers.ValidationError("Send both latitude and longitude, or neither.")
+        if attrs.get("osm_id") and "latitude" not in attrs:
+            raise serializers.ValidationError("A suggested place (`osm_id`) must come with latitude and longitude.")
         return attrs
 
 

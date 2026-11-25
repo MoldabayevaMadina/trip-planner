@@ -58,7 +58,51 @@ def geocode(query: str) -> GeoResult | None:
         osm_id=f"{osm_type}/{osm_number}" if osm_type and osm_number else "",
     )
 
+PHOTON_OSM_TYPES = {"N": "node", "W": "way", "R": "relation"}
 
+
+def suggest_places(query: str, lat: float | None = None, lon: float | None = None, limit: int = 8) -> list[GeoResult]:
+    """
+    Search-as-you-type with Photon (OpenStreetMap data, made for autocomplete;
+    Nominatim's usage policy does not allow it). Results near lat/lon come first.
+    """
+    params = {"q": query, "limit": limit, "lang": "en"}
+    if lat is not None and lon is not None:
+        params.update(lat=lat, lon=lon)
+    try:
+        response = requests.get(
+            settings.PHOTON_URL,
+            params=params,
+            headers={"User-Agent": settings.GEOCODER_USER_AGENT},
+            timeout=settings.HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+        features = response.json().get("features", [])
+    except (requests.RequestException, ValueError) as err:
+        raise ExternalServiceError(f"Place search unavailable: {err}") from err
+
+    results = []
+    for feature in features:
+        props = feature.get("properties") or {}
+        coordinates = (feature.get("geometry") or {}).get("coordinates") or []
+        if len(coordinates) != 2:
+            continue
+        lon_, lat_ = coordinates                       # GeoJSON order: longitude first
+        osm_type = PHOTON_OSM_TYPES.get(props.get("osm_type"))
+        osm_number = props.get("osm_id")
+        street = " ".join(filter(None, [props.get("street"), props.get("housenumber")]))
+        address = ", ".join(filter(None, [street, props.get("district"), props.get("city"), props.get("country")]))
+        results.append(GeoResult(
+            latitude=float(lat_),
+            longitude=float(lon_),
+            name=props.get("name") or street or query,
+            address=address,
+            country=props.get("country", ""),
+            country_code=(props.get("countrycode") or "").upper(),
+            # the same format as Nominatim ("way/24589121"), so both find the same place in our catalog
+            osm_id=f"{osm_type}/{osm_number}" if osm_type and osm_number else "",
+        ))
+    return results
 
 
 def _one_year_back(d: date) -> date:

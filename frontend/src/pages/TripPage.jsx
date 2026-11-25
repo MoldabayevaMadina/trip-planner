@@ -146,6 +146,7 @@ export default function TripPage() {
 
           <AddPlaceForm
             key={picked ? 'point' : 'name'}          // a fresh form when switching between the two modes
+            tripId={trip.id}
             city={trip.city}
             point={picked}
             onAdd={addPlace}

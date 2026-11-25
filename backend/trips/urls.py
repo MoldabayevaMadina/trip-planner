@@ -25,6 +25,7 @@ urlpatterns = [
     # Places (shared catalog)
     path("places/", views.PlaceList.as_view(), name="place-list"),
     path("places/popular/", views.PopularPlaces.as_view(), name="places-popular"),
+    path("places/suggest/", views.place_suggestions, name="place-suggestions"),
     path("places/<int:pk>/", views.PlaceDetail.as_view(), name="place-detail"),
     path("places/<int:pk>/trips/", views.PlaceTrips.as_view(), name="place-trips"),
     path("places/<int:pk>/days/", views.PlaceDays.as_view(), name="place-days"),

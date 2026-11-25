@@ -16,7 +16,7 @@ from .models import Country, Day, Place, Trip, Visit
 from .serializers import (CountrySerializer, DaySerializer, DayShortSerializer, PlaceSerializer,
                           PopularPlaceSerializer, TripCopySerializer, TripSerializer,
                           VisitCreateSerializer, VisitSerializer)
-from .services import ExternalServiceError, geocode, refresh_weather
+from .services import ExternalServiceError, geocode, refresh_weather, suggest_places
 
 
 class ServiceUnavailable(APIException):
@@ -363,12 +363,22 @@ class DayVisits(generics.ListCreateAPIView):
     @staticmethod
     def find_or_create_place(data, geo):
         category = data.get("category", Place.Category.SIGHT)
-        if geo is None: 
-            return Place.objects.create(name=data["name"], latitude=data["latitude"],
-                                        longitude=data["longitude"], category=category)
+        if geo is None:
+            # coordinates came from the client: a click on the map or a picked suggestion
+            fields = {
+                "name": data["name"],
+                "address": data.get("address", ""),
+                "latitude": data["latitude"],
+                "longitude": data["longitude"],
+                "category": category,
+            }
+            if data.get("osm_id"):  # a picked suggestion: the same real place is stored only once
+                place, _ = Place.objects.get_or_create(osm_id=data["osm_id"], defaults=fields)
+                return place
+            return Place.objects.create(**fields)  # a click on the map: always a new place
         defaults = {"name": data["name"], "address": geo.address, "latitude": geo.latitude,
                     "longitude": geo.longitude, "category": category}
-        if geo.osm_id:  
+        if geo.osm_id:  # the same real place is stored only once
             place, _ = Place.objects.get_or_create(osm_id=geo.osm_id, defaults=defaults)
             return place
         return Place.objects.create(**defaults)
@@ -578,6 +588,44 @@ def health(request):
         "country": serializers.CharField(), "country_code": serializers.CharField(),
         "osm_id": serializers.CharField()})},
 )
+
+@extend_schema(
+    summary="Place suggestions while typing",
+    parameters=[
+        OpenApiParameter("q", str, required=True, description="What the user is typing, at least 3 characters"),
+        OpenApiParameter("trip", int, description="Places near this trip's city come first; other countries are hidden"),
+    ],
+    responses={200: inline_serializer(name="PlaceSuggestion", many=True, fields={
+        "name": serializers.CharField(),
+        "address": serializers.CharField(),
+        "latitude": serializers.FloatField(),
+        "longitude": serializers.FloatField(),
+        "country": serializers.CharField(),
+        "country_code": serializers.CharField(),
+        "osm_id": serializers.CharField(),
+    })},
+)
+@api_view(["GET"])
+def place_suggestions(request):
+    """GET /api/places/suggest/?q=starb&trip=5 — up to 6 places for the dropdown. Nothing is saved."""
+    query = request.query_params.get("q", "").strip()
+    if len(query) < 3:
+        return Response([])            # too short to search: no request to the external service
+
+    trip = None
+    trip_id = filters.get_int(request.query_params, "trip")
+    if trip_id:
+        trip = get_object_or_404(Trip.objects.select_related("country"), pk=trip_id)
+
+    try:
+        results = suggest_places(query, trip.latitude if trip else None, trip.longitude if trip else None)
+    except ExternalServiceError:
+        raise ServiceUnavailable("Place search is unavailable. Try again later.")
+
+    if trip and trip.country:          # a café in another country is never what the user wants
+        results = [r for r in results if not r.country_code or r.country_code == trip.country.code]
+    return Response([asdict(r) for r in results[:6]])
+
 @api_view(["GET"])
 def geocode_search(request):
     """GET /api/geocode/?q=... — find coordinates without saving anything."""
