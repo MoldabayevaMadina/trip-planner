@@ -2,13 +2,14 @@ from dataclasses import asdict
 from datetime import timedelta
 
 from django.db import DatabaseError, connection, transaction
-from django.db.models import Count, ProtectedError, Q
+from django.db.models import Count, IntegerField, ProtectedError, Q, Value
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import generics, serializers, status
-from rest_framework.decorators import api_view
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import APIException, NotAuthenticated, ValidationError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from . import filters
@@ -54,9 +55,15 @@ TRIP_ORDERING = ["start_date", "-start_date", "title", "-title", "city", "-city"
 
 def trips_queryset():
     """Trips with their country (JOIN) and the number of planned places (COUNT) in one query."""
+    # order_by is needed: Meta.ordering is not used in queries with GROUP BY (annotate + Count)
     return (Trip.objects.select_related("country")
             .annotate(visits_count=Count("days__visits"))
             .order_by("start_date", "id"))
+
+
+def my_trips(request):
+    """Only the trips of the logged-in user. Trips of other users are invisible: asking for them gives 404."""
+    return trips_queryset().filter(owner=request.user)
 
 
 # ---------- Trips ----------
@@ -73,13 +80,14 @@ def trips_queryset():
     OpenApiParameter("ordering", str, enum=TRIP_ORDERING, description="Sort order, - means descending"),
 ])
 class TripListCreate(generics.ListCreateAPIView):
-    """GET /api/trips/ — trips with filters. POST — create a trip (the city is geocoded, days are created)."""
+    """GET /api/trips/ — my trips with filters. POST — create a trip (the city is geocoded, days are created)."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = TripSerializer
 
     def get_queryset(self):
         params = self.request.query_params
-        qs = trips_queryset()
+        qs = my_trips(self.request)
 
         city = params.get("city")
         if city:
@@ -138,12 +146,13 @@ class TripListCreate(generics.ListCreateAPIView):
 
 
 class TripDetail(generics.RetrieveUpdateDestroyAPIView):
-    """GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip."""
+    """GET / PUT / PATCH / DELETE /api/trips/{id}/ — one of my trips."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = TripSerializer
 
     def get_queryset(self):
-        return trips_queryset()
+        return my_trips(self.request)
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -154,7 +163,7 @@ class TripDetail(generics.RetrieveUpdateDestroyAPIView):
             extra = {"latitude": geo.latitude, "longitude": geo.longitude, "country": country_from(geo)}
         trip = serializer.save(**extra)
         trip.sync_days()
-        if extra: 
+        if extra:  # new city: the saved weather belongs to the old city
             trip.days.update(weather_updated_at=None)
 
 
@@ -167,9 +176,10 @@ class TripDetail(generics.RetrieveUpdateDestroyAPIView):
     }),
 )
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def trip_days(request, pk):
     """GET /api/trips/{id}/days/ — days with visits and weather. Stale weather is refreshed here."""
-    trip = get_object_or_404(trips_queryset(), pk=pk)
+    trip = get_object_or_404(my_trips(request), pk=pk)
     weather_ok = refresh_weather(trip)
     days = trip.days.prefetch_related("visits__place")
     return Response({
@@ -199,9 +209,10 @@ def trip_days(request, pk):
     }),
 )
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def trip_stats(request, pk):
     """GET /api/trips/{id}/stats/ — numbers of a trip, counted by the database (aggregate / annotate)."""
-    trip = get_object_or_404(Trip, pk=pk)
+    trip = get_object_or_404(Trip, pk=pk, owner=request.user)
     visits = Visit.objects.filter(day__trip=trip)
 
     totals = visits.aggregate(
@@ -218,7 +229,7 @@ def trip_stats(request, pk):
         visited_count=Count("visits", filter=Q(visits__visited=True)),
     ).order_by("date")
     by_day = [{"date": d.date, "planned": d.planned, "visited": d.visited_count} for d in days]
-    rainy_days = trip.days.filter(weather_code__gte=51).count()  
+    rainy_days = trip.days.filter(weather_code__gte=51).count()   # same rule as is_rainy()
 
     planned = totals["planned"]
     return Response({
@@ -237,9 +248,10 @@ def trip_stats(request, pk):
 
 @extend_schema(request=TripCopySerializer, responses={201: TripSerializer})
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def trip_copy(request, pk):
     """POST /api/trips/{id}/copy/ — a new trip with the same city and plan, starting on another date."""
-    source = get_object_or_404(Trip.objects.select_related("country"), pk=pk)
+    source = get_object_or_404(Trip.objects.select_related("country"), pk=pk, owner=request.user)
     data_in = TripCopySerializer(data=request.data)
     data_in.is_valid(raise_exception=True)
     data = data_in.validated_data
@@ -255,6 +267,7 @@ def trip_copy(request, pk):
             owner=request.user,
         )
         trip.sync_days()
+        # day 1 → day 1, day 2 → day 2 ...: the same places and times, not visited yet
         old_days = source.days.prefetch_related("visits").order_by("date")
         new_days = trip.days.order_by("date")
         Visit.objects.bulk_create([
@@ -266,7 +279,7 @@ def trip_copy(request, pk):
 
 
 @extend_schema(
-    summary="Cities of all trips",
+    summary="Cities of my trips",
     parameters=[OpenApiParameter("country", str, description="Country ISO code, e.g. TR")],
     responses=inline_serializer(name="City", many=True, fields={
         "city": serializers.CharField(),
@@ -276,9 +289,11 @@ def trip_copy(request, pk):
     }),
 )
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def cities(request):
-    """GET /api/cities/ — every city we travel to, with the number of trips (GROUP BY city)."""
-    rows = (Trip.objects.values("city", "country__name", "country__code")
+    """GET /api/cities/ — every city I travel to, with the number of trips (GROUP BY city)."""
+    rows = (Trip.objects.filter(owner=request.user)
+            .values("city", "country__name", "country__code")
             .annotate(trips_count=Count("id"))
             .order_by("city"))
     country = request.query_params.get("country")
@@ -294,39 +309,49 @@ def cities(request):
 class TripPlaces(generics.ListAPIView):
     """GET /api/trips/{id}/places/ — places planned in this trip (each place once)."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = PlaceSerializer
 
     def get_queryset(self):
-        trip = get_object_or_404(Trip, pk=self.kwargs["pk"])
+        trip = get_object_or_404(Trip, pk=self.kwargs["pk"], owner=self.request.user)
         return Place.objects.filter(visits__day__trip=trip).distinct()
 
 
 class TripsOnDate(generics.ListAPIView):
-    """GET /api/dates/{YYYY-MM-DD}/trips/ — trips that go on this date."""
+    """GET /api/dates/{YYYY-MM-DD}/trips/ — my trips that go on this date."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = TripSerializer
 
     def get_queryset(self):
         on_date = filters.parse_date(self.kwargs["date"])
-        return trips_queryset().filter(start_date__lte=on_date, end_date__gte=on_date)
+        return my_trips(self.request).filter(start_date__lte=on_date, end_date__gte=on_date)
 
 
 # ---------- Days ----------
 
+def my_days(request):
+    return Day.objects.filter(trip__owner=request.user)
+
+
 class DayDetail(generics.RetrieveUpdateAPIView):
     """GET / PUT / PATCH /api/days/{id}/ — one day, e.g. to set a note: {"note": "museum day"}."""
 
-    queryset = Day.objects.prefetch_related("visits__place")
+    permission_classes = [IsAuthenticated]
     serializer_class = DaySerializer
+
+    def get_queryset(self):
+        return my_days(self.request).prefetch_related("visits__place")
 
 
 class DayPlaces(generics.ListAPIView):
     """GET /api/days/{id}/places/ — places of a day (through the many-to-many link)."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = PlaceSerializer
 
     def get_queryset(self):
-        day = get_object_or_404(Day, pk=self.kwargs["pk"])
+        day = get_object_or_404(my_days(self.request), pk=self.kwargs["pk"])
         return day.places.all()
 
 
@@ -334,10 +359,11 @@ class DayPlaces(generics.ListAPIView):
 class DayVisits(generics.ListCreateAPIView):
     """GET /api/days/{id}/visits/ — the plan of a day. POST — add a place to the day."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = VisitSerializer
 
     def get_day(self):
-        return get_object_or_404(Day.objects.select_related("trip"), pk=self.kwargs["pk"])
+        return get_object_or_404(my_days(self.request).select_related("trip"), pk=self.kwargs["pk"])
 
     def get_queryset(self):
         return Visit.objects.filter(day=self.get_day()).select_related("place")
@@ -394,13 +420,15 @@ class DayVisits(generics.ListCreateAPIView):
     OpenApiParameter("category", str, enum=Place.Category.values, description="Category of the place"),
 ])
 class VisitList(generics.ListAPIView):
-    """GET /api/visits/?trip=&date=&visited=&category= — all planned places with filters."""
+    """GET /api/visits/?trip=&date=&visited=&category= — all my planned places with filters."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = VisitSerializer
 
     def get_queryset(self):
         params = self.request.query_params
-        qs = Visit.objects.select_related("place", "day").order_by("day__date", "time", "id")
+        qs = (Visit.objects.filter(day__trip__owner=self.request.user)
+              .select_related("place", "day").order_by("day__date", "time", "id"))
 
         trip = filters.get_int(params, "trip")
         if trip is not None:
@@ -424,8 +452,11 @@ class VisitList(generics.ListAPIView):
 class VisitDetail(generics.RetrieveUpdateDestroyAPIView):
     """GET / PUT / PATCH / DELETE /api/visits/{id}/ — mark visited, change time, move to another day."""
 
-    queryset = Visit.objects.select_related("place", "day")
+    permission_classes = [IsAuthenticated]
     serializer_class = VisitSerializer
+
+    def get_queryset(self):
+        return Visit.objects.filter(day__trip__owner=self.request.user).select_related("place", "day")
 
 
 # ---------- Places (shared catalog) ----------
@@ -433,10 +464,10 @@ class VisitDetail(generics.RetrieveUpdateDestroyAPIView):
 @extend_schema(parameters=[
     OpenApiParameter("category", str, enum=Place.Category.values, description="Category of the place"),
     OpenApiParameter("search", str, description="Name contains the text"),
-    OpenApiParameter("trip", int, description="Only places planned in this trip"),
+    OpenApiParameter("trip", int, description="Only places planned in this trip of mine (needs login)"),
 ])
 class PlaceList(generics.ListAPIView):
-    """GET /api/places/?category=&search=&trip= — all places of the catalog."""
+    """GET /api/places/?category=&search=&trip= — the shared catalog of places (public)."""
 
     serializer_class = PlaceSerializer
 
@@ -453,8 +484,10 @@ class PlaceList(generics.ListAPIView):
             qs = qs.filter(name__icontains=search)
 
         trip = filters.get_int(params, "trip")
-        if trip is not None:
-            qs = qs.filter(visits__day__trip_id=trip).distinct()
+        if trip is not None:   # places of one of my trips
+            if not self.request.user.is_authenticated:
+                raise NotAuthenticated("Log in to see the places of your trips.")
+            qs = qs.filter(visits__day__trip_id=trip, visits__day__trip__owner=self.request.user).distinct()
 
         return qs
 
@@ -463,7 +496,7 @@ class PlaceList(generics.ListAPIView):
     OpenApiParameter("limit", int, description="How many places, 1–50 (default 10)"),
 ])
 class PopularPlaces(generics.ListAPIView):
-    """GET /api/places/popular/ — places planned in the most trips."""
+    """GET /api/places/popular/ — places planned in the most trips of all travellers (public, only numbers)."""
 
     serializer_class = PopularPlaceSerializer
 
@@ -491,41 +524,48 @@ class PlaceDetail(generics.RetrieveUpdateDestroyAPIView):
 
 
 class PlaceTrips(generics.ListAPIView):
-    """GET /api/places/{id}/trips/ — trips that visit this place."""
+    """GET /api/places/{id}/trips/ — my trips that visit this place."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = TripSerializer
 
     def get_queryset(self):
         place = get_object_or_404(Place, pk=self.kwargs["pk"])
-        return trips_queryset().filter(id__in=Trip.objects.filter(days__visits__place=place))
+        return my_trips(self.request).filter(id__in=Trip.objects.filter(days__visits__place=place))
 
 
 class PlaceDays(generics.ListAPIView):
-    """GET /api/places/{id}/days/ — days (of any trip) when this place is planned."""
+    """GET /api/places/{id}/days/ — days (of any of my trips) when this place is planned."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = DayShortSerializer
 
     def get_queryset(self):
         place = get_object_or_404(Place, pk=self.kwargs["pk"])
-        return place.days.select_related("trip").order_by("date", "id")
+        return place.days.filter(trip__owner=self.request.user).select_related("trip").order_by("date", "id")
 
 
 # ---------- Countries ----------
 
-def countries_queryset():
-    return Country.objects.annotate(trips_count=Count("trips")).order_by("name")
+def countries_queryset(user):
+    """Countries are public; trips_count counts only the trips of the logged-in user (0 for guests)."""
+    if user.is_authenticated:
+        trips_count = Count("trips", filter=Q(trips__owner=user))
+    else:
+        trips_count = Value(0, output_field=IntegerField())
+    return Country.objects.annotate(trips_count=trips_count).order_by("name")
 
 
 @extend_schema(parameters=[
     OpenApiParameter("visa_free", bool, description="Only visa-free (true) or visa (false) countries"),
 ])
 class CountryList(generics.ListAPIView):
-    """GET /api/countries/ — countries of all trips (created automatically when a city is geocoded)."""
+    """GET /api/countries/ — countries (public; created automatically when a city is geocoded)."""
 
     serializer_class = CountrySerializer
 
     def get_queryset(self):
-        qs = countries_queryset()
+        qs = countries_queryset(self.request.user)
         visa_free = filters.get_bool(self.request.query_params, "visa_free")
         if visa_free is not None:
             qs = qs.filter(visa_free=visa_free)
@@ -539,27 +579,30 @@ class CountryDetail(generics.RetrieveUpdateAPIView):
     http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self):
-        return countries_queryset()
+        return countries_queryset(self.request.user)
 
 
 class CountryPlaces(generics.ListAPIView):
-    """GET /api/countries/{id}/places/ — places planned in trips to this country."""
+    """GET /api/countries/{id}/places/ — places planned in my trips to this country."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = PlaceSerializer
 
     def get_queryset(self):
         country = get_object_or_404(Country, pk=self.kwargs["pk"])
-        return Place.objects.filter(visits__day__trip__country=country).distinct()
+        return Place.objects.filter(visits__day__trip__country=country,
+                                    visits__day__trip__owner=self.request.user).distinct()
 
 
 class CountryTrips(generics.ListAPIView):
-    """GET /api/countries/{id}/trips/ — all trips to this country."""
+    """GET /api/countries/{id}/trips/ — my trips to this country."""
 
+    permission_classes = [IsAuthenticated]
     serializer_class = TripSerializer
 
     def get_queryset(self):
         country = get_object_or_404(Country, pk=self.kwargs["pk"])
-        return trips_queryset().filter(country=country)
+        return my_trips(self.request).filter(country=country)
 
 
 # ---------- Service ----------
@@ -581,16 +624,6 @@ def health(request):
 
 
 @extend_schema(
-    summary="Preview a place search before adding it",
-    parameters=[OpenApiParameter("q", str, required=True, description='What to search, e.g. "Galata Tower, Istanbul"')],
-    responses={200: inline_serializer(name="GeocodeResponse", fields={
-        "latitude": serializers.FloatField(), "longitude": serializers.FloatField(),
-        "name": serializers.CharField(), "address": serializers.CharField(),
-        "country": serializers.CharField(), "country_code": serializers.CharField(),
-        "osm_id": serializers.CharField()})},
-)
-
-@extend_schema(
     summary="Place suggestions while typing",
     parameters=[
         OpenApiParameter("q", str, required=True, description="What the user is typing, at least 3 characters"),
@@ -607,6 +640,7 @@ def health(request):
     })},
 )
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def place_suggestions(request):
     """GET /api/places/suggest/?q=starb&trip=5 — up to 6 places for the dropdown. Nothing is saved."""
     query = request.query_params.get("q", "").strip()
@@ -616,7 +650,7 @@ def place_suggestions(request):
     trip = None
     trip_id = filters.get_int(request.query_params, "trip")
     if trip_id:
-        trip = get_object_or_404(Trip.objects.select_related("country"), pk=trip_id)
+        trip = get_object_or_404(my_trips(request), pk=trip_id)
 
     try:
         results = suggest_places(query, trip.latitude if trip else None, trip.longitude if trip else None)
@@ -627,7 +661,18 @@ def place_suggestions(request):
         results = [r for r in results if not r.country_code or r.country_code == trip.country.code]
     return Response([asdict(r) for r in results[:6]])
 
+
+@extend_schema(
+    summary="Preview a place search before adding it",
+    parameters=[OpenApiParameter("q", str, required=True, description='What to search, e.g. "Galata Tower, Istanbul"')],
+    responses={200: inline_serializer(name="GeocodeResponse", fields={
+        "latitude": serializers.FloatField(), "longitude": serializers.FloatField(),
+        "name": serializers.CharField(), "address": serializers.CharField(),
+        "country": serializers.CharField(), "country_code": serializers.CharField(),
+        "osm_id": serializers.CharField()})},
+)
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def geocode_search(request):
     """GET /api/geocode/?q=... — find coordinates without saving anything."""
     query = request.query_params.get("q", "").strip()

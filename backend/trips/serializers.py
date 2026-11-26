@@ -177,7 +177,7 @@ class TripSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Trip
-        fields = ["id", "title", "city", "country", "owner" "latitude", "longitude",
+        fields = ["id", "title", "city", "country", "owner", "latitude", "longitude",
                   "start_date", "end_date", "places_count", "created_at"]
         read_only_fields = ["latitude", "longitude", "created_at"]
         extra_kwargs = {"title": {"required": False, "allow_blank": True}}
