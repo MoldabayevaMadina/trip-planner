@@ -1,8 +1,16 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from . import auth_views
 from . import views
 
 urlpatterns = [
+    #  auth 
+    path("auth/register/", auth_views.RegisterView.as_view(), name="auth-register"),
+    path("auth/login/", TokenObtainPairView.as_view(), name="auth-login"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
+    path("auth/me/", auth_views.MeView.as_view(), name="auth-me"),
+    path("auth/change-password/", auth_views.ChangePasswordView.as_view(), name="auth-change-password"),
     # Trips
     path("trips/", views.TripListCreate.as_view(), name="trip-list"),
     path("trips/<int:pk>/", views.TripDetail.as_view(), name="trip-detail"),

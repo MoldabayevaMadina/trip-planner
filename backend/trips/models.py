@@ -6,8 +6,19 @@ from django.db import models
 
 
 class User(AbstractUser):
-    """My user model (login and trip owners arrive in HW4)."""
+    """My user model: login with JWT, owner of trips."""
 
+
+class Profile(models.Model):
+    """Extra information about a user. One-to-one: every user has exactly one profile."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    home_city = models.CharField(max_length=120, blank=True)
+    bio = models.TextField(max_length=500, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
 
 class Country(models.Model):
     """A country of trips. Created automatically when the city of a trip is geocoded."""
@@ -33,6 +44,7 @@ class Trip(models.Model):
     country = models.ForeignKey(
         Country, on_delete=models.PROTECT, related_name="trips", null=True, blank=True
     )
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="trips")
     latitude = models.FloatField()
     longitude = models.FloatField()
     start_date = models.DateField()

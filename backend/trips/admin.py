@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import Country, Day, Place, Trip, User, Visit
+from .models import Country, Day, Place, Profile, Trip, User, Visit
 
 admin.site.register(User, UserAdmin)
 
@@ -25,6 +25,8 @@ class TripAdmin(admin.ModelAdmin):
     list_filter = ["country"]
     search_fields = ["title", "city"]
     inlines = [DayInline]
+    list_display = ["title", "owner", "city", "country", "start_date", "end_date"]
+    list_filter = ["country", "owner"] 
 
 
 class VisitInline(admin.TabularInline):
@@ -51,3 +53,8 @@ class PlaceAdmin(admin.ModelAdmin):
 class VisitAdmin(admin.ModelAdmin):
     list_display = ["place", "day", "time", "visited"]
     list_filter = ["visited"]
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "home_city", "updated_at"]
+    search_fields = ["user__username", "home_city"]

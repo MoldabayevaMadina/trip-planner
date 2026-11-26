@@ -133,7 +133,7 @@ class TripListCreate(generics.ListCreateAPIView):
         geo = geocode_or_error(city, "city")
         title = serializer.validated_data.get("title") or city
         trip = serializer.save(title=title, latitude=geo.latitude, longitude=geo.longitude,
-                               country=country_from(geo))
+                               country=country_from(geo), owner=self.request.user)
         trip.sync_days()
 
 
@@ -252,6 +252,7 @@ def trip_copy(request, pk):
             city=source.city, country=source.country,
             latitude=source.latitude, longitude=source.longitude,
             start_date=start, end_date=start + timedelta(days=length),
+            owner=request.user,
         )
         trip.sync_days()
         old_days = source.days.prefetch_related("visits").order_by("date")

@@ -172,11 +172,12 @@ class DayShortSerializer(serializers.ModelSerializer):
 
 class TripSerializer(serializers.ModelSerializer):
     country = CountryShortSerializer(read_only=True)
+    owner = serializers.CharField(source="owner.username", read_only=True)
     places_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Trip
-        fields = ["id", "title", "city", "country", "latitude", "longitude",
+        fields = ["id", "title", "city", "country", "owner" "latitude", "longitude",
                   "start_date", "end_date", "places_count", "created_at"]
         read_only_fields = ["latitude", "longitude", "created_at"]
         extra_kwargs = {"title": {"required": False, "allow_blank": True}}
