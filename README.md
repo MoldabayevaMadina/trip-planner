@@ -1,9 +1,11 @@
 # Trip Planner
 
-Plan a trip day by day: places on a map with the route of the day, the weather for every day of the trip, and the countries you travel to (with visa-free information).
+A full-stack app for planning a trip day by day: places on a map with the route of the day, the weather for every day, and the countries you travel to (with visa-free information). Users sign up, log in with JWT, and see only their own trips.
 
-**Stack:** Django 5 + Django REST Framework, PostgreSQL 16, Gunicorn, WhiteNoise, Docker Compose, Leaflet + OpenStreetMap.
-**External services (free, no API keys):** Nominatim (geocoding), Open-Meteo (weather).
+**Backend:** Django 5 + Django REST Framework, Simple JWT, PostgreSQL 16, Gunicorn, WhiteNoise.
+**Frontend:** React (Vite), React Router, React Leaflet + OpenStreetMap, served by nginx.
+**Infrastructure:** Docker Compose with three services: `db`, `backend`, `frontend`.
+**External services (free, no API keys):** Nominatim (geocoding), Photon (place autocomplete), Open-Meteo (weather).
 **API docs:** drf-spectacular (OpenAPI 3, Swagger UI). **API testing:** Postman collection.
 
 ## Run with Docker
@@ -12,304 +14,362 @@ Copy `.env.example` to `.env` (on Windows: `copy .env.example .env`) and replace
 
 ```bash
 cp .env.example .env
-docker compose up --build
-```
-
-- App: http://localhost:8000
-- API: http://localhost:8000/api/trips/
-- API docs (Swagger UI): http://localhost:8000/api/docs/
-- Admin: http://localhost:8000/admin/ (credentials from `DJANGO_SUPERUSER_*` in `.env`)
-
-### Demo data
-
-```bash
+docker compose up -d --build
 docker compose exec backend python manage.py seed_demo
 ```
 
-Adds 6 trips to 5 countries (a past trip, a current one and upcoming ones), 21 places and 24 visits; two trips to Istanbul share places, Turkey, Georgia and the UAE are marked visa-free. Dates are counted from the day you run the command, no external services are called, and running it again does not duplicate anything. The visa information is demo data: check official sources before a real trip.
+| What | URL |
+|---|---|
+| Web app (React) | http://localhost:8080 |
+| API | http://localhost:8080/api/ (also directly at http://localhost:8000/api/) |
+| API docs (Swagger UI) | http://localhost:8080/api/docs/ |
+| Admin | http://localhost:8080/admin/ (credentials from `DJANGO_SUPERUSER_*` in `.env`) |
+
+**Demo login:** `demo` / `TripPlanner2026!`. This is a demo-only password created by `seed_demo`. It can be changed with the `DEMO_PASSWORD` variable in `.env` before seeding.
+
+### Demo data
+
+`seed_demo` fills every table with at least 10 records:
+
+| Table | Records |
+|---|---|
+| Users + Profiles | 10 users (`demo`, `aigerim`, `daniyar`, `madina`, `timur`, `zhanna`, `arman`, `dana`, `nurlan`, `alina`), each with a profile |
+| Countries | 12 (some marked visa-free) |
+| Places | 40 |
+| Trips | 15 (`demo` has 6, every other user has 1) |
+| Days, Visits | a day for every date of every trip, places planned on the days |
+
+Dates are counted from the day you run the command, no external services are called, and running it again does not duplicate anything. The visa information is demo data: check official sources before a real trip.
 
 ## Features
 
+**Authentication**
+- Sign up, log in, log out; JWT access + refresh tokens.
+- The access token is refreshed automatically when it expires; if the refresh token is no longer valid, the user is logged out.
+- Profile page: current user info, change username / email / home city / bio, change password.
+
+**Trips (logged-in users only, each user sees only their own trips)**
 - Create a trip by city and dates: the city is geocoded, its country is linked, a day is created for every date.
-- Plan places for each day: by name (found on the map near the trip's city), by clicking on the map, or by reusing a place you already have.
-- Places are a shared catalog: the same real place is stored once and can be planned in many days of many trips.
+- Plan places for each day: search with autocomplete, click on the map, or reuse a place you already have.
 - Map with numbered pins and the route of the selected day.
-- Weather for every day: forecast up to ~2 weeks ahead, same dates last year for later trips, cached in the database for 3 hours.
-- Countries with visa-free information; filter trips by country, city, date, period or visa-free countries.
-- Navigate relations in both directions: trip → days → places, and place → days → trips, country → trips / places, date → trips.
-- Trip statistics, copying a trip to new dates, the list of cities and the most popular places.
+- Weather for every day: forecast up to ~2 weeks ahead, same dates last year for later trips, cached for 3 hours.
+- Edit and delete trips, mark visits as visited, change time, move a visit to another day.
+
+**Public pages (no login)**
+- Home page with popular places and visa-free countries.
+- Read-only API for countries, places and popular places.
+
+## Frontend
+
+| Route | Access | Page |
+|---|---|---|
+| `/` | public | Home: features, popular places, visa-free countries |
+| `/login`, `/login?mode=signup` | public | Log in / Sign up |
+| `/trips` | **protected** | My trips |
+| `/trips/new`, `/trips/:id/edit` | **protected** | Create / edit a trip |
+| `/trips/:id` | **protected** | Trip plan: days, map, places, weather |
+| `/profile` | **protected** | Profile: user info, edit profile, change password |
+
+- `ProtectedRoute` redirects a guest to `/login` and returns them to the page they wanted after login.
+- `AuthProvider` keeps the current user; tokens are stored in `localStorage`.
+- `api.js` adds `Authorization: Bearer <access>` to every request, refreshes the token once on `401` and repeats the request.
+- Every page shows a loading state and API errors (field errors under the form fields, general errors in a message).
+
+## Authentication API
+
+| Method | Endpoint | Access | Description | Responses |
+|---|---|---|---|---|
+| POST | `/api/auth/register/` | public | `{"username", "password", "email"?}` → user + tokens | 201, 400 |
+| POST | `/api/auth/login/` | public | `{"username", "password"}` → `{"access", "refresh"}` | 200, 401 |
+| POST | `/api/auth/refresh/` | public | `{"refresh"}` → new `{"access"}` | 200, 401 |
+| GET | `/api/auth/me/` | login | Current user with profile and number of trips | 200, 401 |
+| PATCH | `/api/auth/me/` | login | Update `username`, `email`, `profile.home_city`, `profile.bio` | 200, 400, 401 |
+| POST | `/api/auth/change-password/` | login | `{"old_password", "new_password"}` | 200, 400, 401 |
+
+Protected requests send the header:
+
+```http
+Authorization: Bearer <access token>
+```
+
+- Passwords are checked by Django password validators (length, common passwords, similarity to the username, only digits) and stored as hashes.
+- Access token lives 30 minutes, refresh token 7 days (`JWT_ACCESS_MINUTES`, `JWT_REFRESH_DAYS` in `.env`).
+
+### Who can do what
+
+| Data | Guest | Logged-in user |
+|---|---|---|
+| Countries, places, popular places, health | read (GET) | read + edit |
+| Trips, days, visits, stats, copy, cities | `401` | only **own** objects; someone else's trip → `404` |
+| Place suggestions, geocode preview | `401` | yes |
+
+- Default permission: `IsAuthenticatedOrReadOnly`, so every `POST`/`PUT`/`PATCH`/`DELETE` needs a token.
+- Trip views use `IsAuthenticated` and filter the queryset by `owner=request.user`. Someone else's trip returns `404`, not `403`, so the API does not even reveal that it exists.
+- The owner of a new trip is set by the server from the token, it can't be sent in the request.
 
 ## Docker setup
 
 | Requirement | Implementation |
 |---|---|
-| Services | `db` (postgres:16-alpine) and `backend` (custom `backend/Dockerfile`) in `compose.yaml` |
-| Network | bridge network `trip-net`; the backend connects to the database by service name `db` |
-| Ports | only the backend is published (`HOST_PORT:8000`); the database is not exposed |
-| Dependencies | `depends_on` with `condition: service_healthy` + `pg_isready` healthcheck |
-| Configuration and secrets | environment variables from `.env` (git-ignored); `.env.example` is the template |
+| Services | `db` (postgres:16-alpine), `backend` (`backend/Dockerfile`), `frontend` (`frontend/Dockerfile`) in `compose.yaml` |
+| Frontend image | multi-stage build: `node:22-alpine` builds the React app, `nginx:1.27-alpine` serves it |
+| nginx | serves the built app; `/api/`, `/admin/`, `/static/` are proxied to `backend:8000`; other paths return `index.html` (React Router) |
+| Network | bridge network `trip-net`; services reach each other by name (`db`, `backend`) |
+| Ports | frontend `FRONTEND_PORT:80` (8080), backend `HOST_PORT:8000`; the database is not exposed |
+| Dependencies | `backend` waits for `db` (`condition: service_healthy` + `pg_isready`), `frontend` depends on `backend` |
+| Configuration and secrets | environment variables from `.env` (git-ignored); `.env.example` is the template; external service URLs are also configurable |
 | Persistence | named volume `pgdata` mounted to `/var/lib/postgresql/data` |
 | Startup | `entrypoint.sh`: migrations → admin user → Gunicorn, running as a non-root user |
 
-Data survives recreating the containers: `docker compose down` removes the containers but keeps the volume. `docker compose down -v` also deletes the database.
+`docker compose down` removes the containers but keeps the data. `docker compose down -v` also deletes the database.
 
 ## Data model
 
 ```
+User    1 ──── 1 Profile    Profile.user → OneToOneField(User, CASCADE, related_name="profile")
+User    1 ──── * Trip       Trip.owner   → ForeignKey(User, CASCADE, related_name="trips")
 Country 1 ──── * Trip       Trip.country → ForeignKey(Country, PROTECT, related_name="trips")
 Trip    1 ──── * Day        Day.trip     → ForeignKey(Trip, CASCADE, related_name="days")
 Day     * ──── * Place      Place.days   → ManyToManyField(Day, through="Visit", related_name="places")
                             Visit.day    → ForeignKey(Day, CASCADE, related_name="visits")
                             Visit.place  → ForeignKey(Place, PROTECT, related_name="visits")
-User                        custom user model (authentication arrives in HW4)
 ```
+
+| Relationship | Type | Meaning |
+|---|---|---|
+| User ↔ Profile | **one-to-one** | every user has one profile with extra info (home city, bio) |
+| User → Trip | **one-to-many** | a user owns many trips; a trip belongs to one user |
+| Country → Trip, Trip → Day | **one-to-many** | a country has many trips; a trip has a day for every date |
+| Day ↔ Place (through Visit) | **many-to-many** | a day has many places; the same place can be planned in many days of many trips |
 
 | Model | Fields | Notes |
 |---|---|---|
-| **Country** | `code` (ISO, unique), `name`, `visa_free`, `visa_free_days` | created automatically from the geocoder; visa info is edited via the API |
-| **Trip** | `title`, `city`, `country`, `latitude`, `longitude`, `start_date`, `end_date`, `created_at` | coordinates and country are found by the server |
-| **Day** | `trip`, `date`, `note`, cached weather (`weather_code`, `temp_max`, `temp_min`, `weather_source`, `weather_updated_at`) | unique `(trip, date)` |
+| **User** | `username`, `email`, `password` (hash), `date_joined` | custom user model (`AbstractUser`) |
+| **Profile** | `user`, `home_city`, `bio`, `updated_at` | created at sign-up |
+| **Country** | `code` (ISO, unique), `name`, `visa_free`, `visa_free_days` | created automatically from the geocoder |
+| **Trip** | `owner`, `title`, `city`, `country`, `latitude`, `longitude`, `start_date`, `end_date`, `created_at` | coordinates and country are found by the server |
+| **Day** | `trip`, `date`, `note`, cached weather | unique `(trip, date)` |
 | **Place** | `name`, `address`, `latitude`, `longitude`, `category`, `osm_id` (unique), `created_at` | a real place, shared by all trips |
 | **Visit** | `day`, `place`, `time`, `visited`, `created_at` | a place planned for a day; unique `(day, place)` |
 
-Relationships: four one-to-many (`Country → Trip`, `Trip → Day`, `Day → Visit`, `Place → Visit`) and one many-to-many (`Day ↔ Place` through `Visit`).
+## API endpoints
 
-## API documentation
+Full interactive documentation: http://localhost:8080/api/docs/ (generated from the code by drf-spectacular; schema at `/api/schema/` and [`docs/openapi.yaml`](docs/openapi.yaml)).
 
-- **Swagger UI:** http://localhost:8000/api/docs/ — interactive docs, every endpoint can be tried with "Try it out"
-- **OpenAPI schema:** [`docs/openapi.yaml`](docs/openapi.yaml) (also served at `/api/schema/`)
-
-The docs are generated from the code with **drf-spectacular**, so they always match the API.
-
-### Endpoints
-
-24 URLs, 38 operations (method + URL).
+🔒 = needs `Authorization: Bearer <token>`. Without it the response is `401`.
 
 **Trips**
 
 | Method | Endpoint | Description | Responses |
 |---|---|---|---|
-| GET | `/api/trips/` | List trips sorted by start date; filters below | 200, 400 |
-| POST | `/api/trips/` | Create a trip (`city`, `start_date`, `end_date`, optional `title`); the city is geocoded, the country is linked, a day is created for every date | 201, 400, 503 |
-| GET | `/api/trips/{id}/` | One trip with its country | 200, 404 |
-| PUT / PATCH | `/api/trips/{id}/` | Full / partial update; a new city is geocoded, days are re-synced if the dates change | 200, 400, 404, 503 |
-| DELETE | `/api/trips/{id}/` | Delete a trip with its days and visits (places stay in the catalog) | 204, 404 |
-| GET | `/api/trips/{id}/days/` | Days with visits and weather | 200, 404 |
-| GET | `/api/trips/{id}/places/` | Places planned in the trip (each once) | 200, 404 |
-| GET | `/api/trips/{id}/stats/` | Statistics: days, planned visits, unique places, visited (%), rainy days, visits by category and by day | 200, 404 |
-| POST | `/api/trips/{id}/copy/` | Copy the trip with its plan to new dates: `{"start_date": "2027-03-01", "title": "..."}`; visits are copied as not visited | 201, 400, 404 |
-| GET | `/api/dates/{YYYY-MM-DD}/trips/` | Trips that go on this date | 200, 400 |
-| GET | `/api/cities/` | Cities with the number of trips; filter `country` | 200 |
+| GET 🔒 | `/api/trips/` | My trips sorted by start date | 200, 401 |
+| POST 🔒 | `/api/trips/` | Create a trip (`city`, `start_date`, `end_date`, optional `title`) | 201, 400, 401, 503 |
+| GET 🔒 | `/api/trips/{id}/` | One of my trips | 200, 401, 404 |
+| PUT / PATCH 🔒 | `/api/trips/{id}/` | Full / partial update; days are re-synced if the dates change | 200, 400, 401, 404, 503 |
+| DELETE 🔒 | `/api/trips/{id}/` | Delete a trip with its days and visits | 204, 401, 404 |
+| GET 🔒 | `/api/trips/{id}/days/` | Days with visits and weather | 200, 401, 404 |
+| GET 🔒 | `/api/trips/{id}/places/` | Places planned in the trip | 200, 401, 404 |
+| GET 🔒 | `/api/trips/{id}/stats/` | Statistics: days, visits, visited %, rainy days, by category, by day | 200, 401, 404 |
+| POST 🔒 | `/api/trips/{id}/copy/` | Copy the trip to new dates: `{"start_date": "2027-03-01"}` | 201, 400, 401, 404 |
+| GET 🔒 | `/api/dates/{YYYY-MM-DD}/trips/` | My trips that go on this date | 200, 400, 401 |
+| GET 🔒 | `/api/cities/` | My cities with the number of trips | 200, 401 |
 
-**Days**
-
-| Method | Endpoint | Description | Responses |
-|---|---|---|---|
-| GET | `/api/days/{id}/` | One day with its trip id, weather and visits | 200, 404 |
-| PUT / PATCH | `/api/days/{id}/` | Change the day's note (date and trip are read-only) | 200, 400, 404 |
-| GET | `/api/days/{id}/visits/` | The plan of the day | 200, 404 |
-| POST | `/api/days/{id}/visits/` | Add a place to the day: existing `{"place": 7}`, new by name `{"name": "Galata Tower"}`, or new with `latitude` + `longitude`; optional `time`, `category`, `visited` | 201, 400, 404, 503 |
-| GET | `/api/days/{id}/places/` | Places of the day (many-to-many) | 200, 404 |
-
-**Visits**
+**Days and visits**
 
 | Method | Endpoint | Description | Responses |
 |---|---|---|---|
-| GET | `/api/visits/` | All visits; filters `trip`, `date`, `visited`, `category` | 200, 400 |
-| GET | `/api/visits/{id}/` | One visit | 200, 404 |
-| PUT / PATCH | `/api/visits/{id}/` | Mark visited, change time, move to another day of the same trip (`{"day": 12}`) | 200, 400, 404 |
-| DELETE | `/api/visits/{id}/` | Remove the place from the day (the place stays in the catalog) | 204, 404 |
+| GET 🔒 | `/api/days/{id}/` | One day with weather and visits | 200, 401, 404 |
+| PUT / PATCH 🔒 | `/api/days/{id}/` | Change the day's note | 200, 400, 401, 404 |
+| GET 🔒 | `/api/days/{id}/visits/` | The plan of the day | 200, 401, 404 |
+| POST 🔒 | `/api/days/{id}/visits/` | Add a place: existing `{"place": 7}`, a suggestion (`name`, `latitude`, `longitude`, `osm_id`), new by name or by coordinates | 201, 400, 401, 404, 503 |
+| GET 🔒 | `/api/days/{id}/places/` | Places of the day (many-to-many) | 200, 401, 404 |
+| GET 🔒 | `/api/visits/` | All my visits | 200, 401 |
+| GET 🔒 | `/api/visits/{id}/` | One visit | 200, 401, 404 |
+| PUT / PATCH 🔒 | `/api/visits/{id}/` | Mark visited, change time, move to another day of the same trip | 200, 400, 401, 404 |
+| DELETE 🔒 | `/api/visits/{id}/` | Remove the place from the day (the place stays in the catalog) | 204, 401, 404 |
 
-**Places (catalog)**
+**Places (shared catalog)**
 
 | Method | Endpoint | Description | Responses |
 |---|---|---|---|
-| GET | `/api/places/` | All places; filters `category`, `search`, `trip` | 200, 400 |
-| GET | `/api/places/{id}/` | One place | 200, 404 |
-| PUT / PATCH | `/api/places/{id}/` | Rename, change category or coordinates | 200, 400, 404 |
-| DELETE | `/api/places/{id}/` | Delete a place that is not planned anywhere | 204, 404, 409 |
-| GET | `/api/places/{id}/trips/` | Trips that visit this place | 200, 404 |
-| GET | `/api/places/{id}/days/` | Days (of any trip) when this place is planned | 200, 404 |
-| GET | `/api/places/popular/` | Places planned in the most trips; `?limit=` 1–50 (default 10) | 200, 400 |
+| GET | `/api/places/` | All places (public) | 200 |
+| GET | `/api/places/popular/` | Places planned in the most trips (public) | 200, 400 |
+| GET 🔒 | `/api/places/suggest/?q=` | Autocomplete near the trip's city (Photon) | 200, 400, 401, 503 |
+| GET | `/api/places/{id}/` | One place (public) | 200, 404 |
+| PUT / PATCH 🔒 | `/api/places/{id}/` | Rename, change category or coordinates | 200, 400, 401, 404 |
+| DELETE 🔒 | `/api/places/{id}/` | Delete a place that is not planned anywhere | 204, 401, 404, 409 |
+| GET 🔒 | `/api/places/{id}/trips/` | My trips that visit this place | 200, 401, 404 |
+| GET 🔒 | `/api/places/{id}/days/` | My days when this place is planned | 200, 401, 404 |
 
 **Countries**
 
 | Method | Endpoint | Description | Responses |
 |---|---|---|---|
-| GET | `/api/countries/` | Countries with the number of trips; filter `visa_free` | 200, 400 |
-| GET | `/api/countries/{id}/` | One country | 200, 404 |
-| PATCH | `/api/countries/{id}/` | Set visa info: `{"visa_free": true, "visa_free_days": 30}` | 200, 400, 404 |
-| GET | `/api/countries/{id}/trips/` | All trips to this country | 200, 404 |
-| GET | `/api/countries/{id}/places/` | Places planned in trips to this country | 200, 404 |
+| GET | `/api/countries/` | Countries (public); for a logged-in user with the number of their trips | 200 |
+| GET | `/api/countries/{id}/` | One country (public) | 200, 404 |
+| PATCH 🔒 | `/api/countries/{id}/` | Set visa info: `{"visa_free": true, "visa_free_days": 30}` | 200, 400, 401, 404 |
+| GET 🔒 | `/api/countries/{id}/trips/` | My trips to this country | 200, 401, 404 |
+| GET 🔒 | `/api/countries/{id}/places/` | Places of my trips to this country | 200, 401, 404 |
 
 **Service**
 
 | Method | Endpoint | Description | Responses |
 |---|---|---|---|
-| GET | `/api/geocode/?q=` | Preview a place search (nothing is saved) | 200, 400, 503 |
-| GET | `/api/health/` | Backend and database status | 200, 503 |
-
-### Query parameters (filters can be combined)
-
-| Endpoint | Parameter | Values | Example |
-|---|---|---|---|
-| `/api/trips/` | `city` | part of the city name | `?city=ist` |
-| `/api/trips/` | `country` | ISO code | `?country=TR` |
-| `/api/trips/` | `visa_free` | `true` / `false` | `?visa_free=true` |
-| `/api/trips/` | `date` | `YYYY-MM-DD` — trips going on this date | `?date=2026-11-21` |
-| `/api/trips/` | `date_from`, `date_to` | `YYYY-MM-DD` — trips that overlap the period (one border is enough) | `?date_from=2026-11-01&date_to=2026-11-30` |
-| `/api/trips/` | `search` | text in title or city | `?search=friends` |
-| `/api/trips/` | `status` | `upcoming` / `current` / `past` (compared with today) | `?status=upcoming` |
-| `/api/trips/` | `ordering` | `start_date`, `title`, `city`, `created_at`; `-` = descending | `?ordering=-start_date` |
-| `/api/visits/` | `trip`, `date`, `visited`, `category` | id, date, `true`/`false`, category | `?trip=3&visited=false` |
-| `/api/places/` | `category`, `search`, `trip` | category, text, trip id | `?category=food&trip=3` |
-| `/api/countries/` | `visa_free` | `true` / `false` | `?visa_free=true` |
-| `/api/cities/` | `country` | ISO code | `?country=TR` |
-| `/api/places/popular/` | `limit` | 1–50 | `?limit=5` |
-| `/api/geocode/` | `q` (required) | text, at least 2 characters | `?q=Galata Tower, Istanbul` |
-
-Categories: `sight`, `museum`, `food`, `walk`, `shopping`, `other`.
+| GET 🔒 | `/api/geocode/?q=` | Preview a place search (nothing is saved) | 200, 400, 401, 503 |
+| GET | `/api/health/` | Backend and database status (public) | 200, 503 |
 
 ### Request and response examples
+
+Sign up:
+
+```http
+POST /api/auth/register/
+Content-Type: application/json
+
+{"username": "aruzhan", "password": "<your password>", "email": "aruzhan@example.com"}
+```
+
+`201 Created`
+
+```json
+{"user": {"id": 11, "username": "aruzhan", "email": "aruzhan@example.com", "date_joined": "2026-11-27T14:30:00+05:00",
+          "profile": {"home_city": "", "bio": "", "updated_at": "2026-11-27T14:30:00+05:00"}, "trips_count": 0},
+ "access": "eyJhbGciOi...", "refresh": "eyJhbGciOi..."}
+```
+
+Log in and use the token:
+
+```http
+POST /api/auth/login/
+{"username": "demo", "password": "TripPlanner2026!"}
+→ 200 {"access": "eyJ...", "refresh": "eyJ..."}
+
+GET /api/trips/
+Authorization: Bearer eyJ...
+→ 200 [ ...only the trips of "demo"... ]
+```
 
 Create a trip:
 
 ```http
 POST /api/trips/
+Authorization: Bearer eyJ...
 Content-Type: application/json
 
-{"city": "Istanbul", "start_date": "2026-11-20", "end_date": "2026-11-23", "title": "Istanbul with friends"}
+{"city": "Istanbul", "start_date": "2026-12-20", "end_date": "2026-12-23", "title": "Istanbul with friends"}
 ```
 
 `201 Created`
 
 ```json
-{"id": 1, "title": "Istanbul with friends", "city": "Istanbul",
- "country": {"id": 1, "code": "TR", "name": "Turkey", "visa_free": false},
- "latitude": 41.006381, "longitude": 28.9758715, "start_date": "2026-11-20", "end_date": "2026-11-23",
- "places_count": 0, "created_at": "2026-11-11T18:58:58+05:00"}
+{"id": 16, "title": "Istanbul with friends", "city": "Istanbul", "owner": "demo",
+ "country": {"id": 1, "code": "TR", "name": "Turkey", "visa_free": true},
+ "latitude": 41.006381, "longitude": 28.9758715, "start_date": "2026-12-20", "end_date": "2026-12-23",
+ "places_count": 0, "created_at": "2026-11-27T14:30:00+05:00"}
 ```
 
-Add a place to a day by name (coordinates and address are found by the server):
+Update the profile and change the password:
 
 ```http
-POST /api/days/1/visits/
-Content-Type: application/json
+PATCH /api/auth/me/
+{"username": "demo_traveler", "profile": {"home_city": "Almaty"}}
+→ 200 (updated user)
 
-{"name": "Galata Tower", "time": "16:00", "category": "sight"}
+POST /api/auth/change-password/
+{"old_password": "...", "new_password": "..."}
+→ 200 {"detail": "Password changed."}
 ```
 
-`201 Created`
+Errors:
 
 ```json
-{"id": 1, "day": 1, "place": 1, "name": "Galata Tower", "address": "Galata Kulesi, Beyoğlu, İstanbul, Türkiye",
- "latitude": 41.0256, "longitude": 28.9741, "category": "sight", "time": "16:00:00", "visited": false,
- "created_at": "2026-11-11T19:05:00+05:00"}
-```
+GET /api/trips/                         (no token)
+→ 401 {"detail": "Authentication credentials were not provided."}
 
-Reuse the same place in another trip, then see all trips of the place:
+POST /api/auth/login/                   (wrong password)
+→ 401 {"detail": "No active account found with the given credentials"}
 
-```http
-POST /api/days/7/visits/
-{"place": 1}
+GET /api/trips/3/                       (trip of another user)
+→ 404 {"detail": "No Trip matches the given query."}
 
-GET /api/places/1/trips/
-```
+POST /api/auth/register/                (username taken, weak password)
+→ 400 {"username": ["A user with that username already exists."], "password": ["This password is too common."]}
 
-Mark a country visa-free and list trips to visa-free countries:
-
-```http
-PATCH /api/countries/1/
-{"visa_free": true, "visa_free_days": 30}
-
-GET /api/trips/?visa_free=true
-```
-
-Statistics of a trip (counted by the database with `aggregate` / `annotate`):
-
-```http
-GET /api/trips/1/stats/
-```
-
-```json
-{"trip": 1, "title": "Istanbul in autumn", "days": 4, "planned_visits": 5, "unique_places": 5,
- "visited": 4, "visited_percent": 80, "rainy_days": 0,
- "by_category": {"food": 1, "museum": 2, "shopping": 1, "sight": 1},
- "by_day": [{"date": "2026-10-04", "planned": 3, "visited": 3}, {"date": "2026-10-05", "planned": 2, "visited": 1}, ...]}
-```
-
-Copy a trip to new dates:
-
-```http
-POST /api/trips/1/copy/
-{"start_date": "2027-05-01"}
-```
-
-→ `201 Created`: "Istanbul in autumn (copy)", 1–4 May 2027, the same places on the same days, not visited.
-
-Validation errors:
-
-```json
-POST /api/trips/  {"city": "Istanbul", "start_date": "2026-11-13", "end_date": "2026-11-10"}
+POST /api/trips/  {"city": "Istanbul", "start_date": "2026-12-13", "end_date": "2026-12-10"}
 → 400 {"end_date": ["End date can't be before start date."]}
-
-POST /api/days/1/visits/  {"place": 1}     (already planned for this day)
-→ 400 {"place": ["This place is already planned for this day."]}
-
-DELETE /api/places/1/                      (still planned in some day)
-→ 409 {"detail": "The place is planned in 2 visit(s). Remove the visits first."}
 ```
 
-**Errors:**
-- `400` — invalid data: end date before start date, a trip longer than 30 days, missing fields, city or place not found, only one coordinate, a place already planned for the day, moving a visit to another trip's day, visa-free days for a visa country, invalid filter values (`status`, `ordering`, `limit`…), `date_from` after `date_to`, copying without `start_date`;
-- `404` — object not found;
-- `405` — method not allowed (`DELETE /api/days/{id}/`: days follow the trip dates; `PUT`/`DELETE` on countries);
+**Status codes:**
+- `400` — invalid data (validation errors are returned per field);
+- `401` — no token, invalid or expired token, wrong login or password;
+- `404` — object not found or belongs to another user;
+- `405` — method not allowed (e.g. `DELETE /api/days/{id}/`);
 - `409` — a place that is planned in some day can't be deleted;
-- `503` — external service (Nominatim / Open-Meteo) or the database is unavailable.
+- `503` — external service (Nominatim / Photon / Open-Meteo) or the database is unavailable.
 
 ## Postman
 
-Collection: [`postman/TripPlanner.postman_collection.json`](postman/TripPlanner.postman_collection.json) — 87 requests covering all endpoints and error cases.
+Collection: [`postman/TripPlanner.postman_collection.json`](postman/TripPlanner.postman_collection.json) — 123 requests, 196 tests, covering all endpoints, authentication and error cases.
 
 | Folder | What it checks |
 |---|---|
-| 1. Trips | list, create two trips in the same country, get, PUT, PATCH, days with weather |
-| 2. Days | get (with trip id), note (PATCH / PUT) |
-| 3. Visits | add by name / existing place / coordinates, the same place in another trip, plan of a day, places of a day, mark visited, move, PUT, filters, delete |
-| 4. Places | catalog, search, places of a trip, trips of a place, days of a place, PATCH, delete, popular places |
-| 5. Countries | list, get, mark visa-free, visa-free filter, trips of a country, places of a country |
-| 6. Trip filters | visa-free countries, country + city, date, period, trips on a date, search, status (upcoming / current / past), ordering |
-| 7. Stats, copy, cities | trip statistics, copy a trip, visits of the copy, cities, cities of a country |
+| 0. Auth | sign up, taken username / weak password (400), log in, wrong password (401), refresh, broken token (401), me, update profile and username, change password, log in with the old (401) and the new password |
+| 1. Trips | list, create two trips (owner = logged-in user), get, PUT, PATCH, days with weather |
+| 2. Days | get, note (PATCH / PUT) |
+| 3. Visits | add by name / existing place / coordinates, plan of a day, places of a day, mark visited, move, PUT, delete |
+| 4. Places | catalog, search, places of a trip, trips and days of a place, PATCH, delete, popular places |
+| 5. Countries | list, get, mark visa-free, trips and places of a country |
+| 6. Trip filters | visa-free, country + city, date, period, search, status, ordering |
+| 7. Stats, copy, cities | statistics, copy a trip, cities |
 | 8. Validation & errors | 400, 404, 405, 409 cases |
-| 9. Service | health check, geocode preview |
-| 10. Cleanup | delete the trips and the copy, the place stays in the catalog, then delete it if unused |
+| 9. Service | place suggestions (autocomplete), health check, geocode preview |
+| 10. Access control | public GETs without a token (200), guest writes (401), a second user can't see, change or delete the first user's trip (404) |
+| 11. Cleanup | delete the trips and the copy |
 
 1. Start the app: `docker compose up -d --build`
 2. In Postman: **Import** → select the collection file.
 3. Right-click the collection → **Run collection** → set a delay of **1000 ms** (Nominatim allows 1 request per second) → **Run**.
 
-IDs of created objects are saved to collection variables automatically (`tripId`, `dayId`, `placeId`, `visitId`, `countryId`, `copyId`…), and every request has tests. The collection creates and deletes its own trips, so it works on an empty database and next to demo data.
+How authentication works in the collection:
+- The collection has **Auth → Bearer Token = `{{accessToken}}`**, so every request inherits the token.
+- `0. Auth` creates a new user for every run (`traveler_<timestamp>`) and saves `accessToken` / `refreshToken` to collection variables.
+- Public and guest requests use **No Auth**; the second-user requests use `{{otherAccessToken}}`.
+
+IDs of created objects are saved automatically, every request has tests, and the collection deletes the trips it created, so it can be run many times, on an empty database or next to demo data. (The test users stay in the database: there is no endpoint for deleting a user.)
 
 ## Project structure
 
 ```
-├── compose.yaml
+├── compose.yaml                         # db, backend, frontend
 ├── .env.example
-├── docs/openapi.yaml                  # API documentation (OpenAPI 3)
+├── docs/openapi.yaml                    # API documentation (OpenAPI 3)
 ├── postman/TripPlanner.postman_collection.json
-└── backend/
-    ├── Dockerfile
-    ├── entrypoint.sh
-    ├── requirements.txt
-    ├── config/                         # settings, root URLs
-    └── trips/
-        ├── models.py                   # Country, Trip, Day, Place, Visit, User
-        ├── serializers.py              # validation + JSON format
-        ├── filters.py                  # query parameter helpers
-        ├── views.py                    # API endpoints
-        ├── services.py                 # Nominatim and Open-Meteo integrations
-        ├── urls.py
-        ├── admin.py
-        ├── management/commands/seed_demo.py   # demo data
-        └── templates/, static/         # web page with the map
+├── backend/
+│   ├── Dockerfile
+│   ├── entrypoint.sh
+│   ├── requirements.txt
+│   ├── config/                          # settings (DRF, JWT), root URLs
+│   └── trips/
+│       ├── models.py                    # User, Profile, Country, Trip, Day, Place, Visit
+│       ├── serializers.py               # trips, days, places, visits
+│       ├── auth_serializers.py          # register, user + profile, change password
+│       ├── auth_views.py                # register, me, change password
+│       ├── views.py                     # API endpoints (per-user querysets)
+│       ├── filters.py                   # query parameter helpers
+│       ├── services.py                  # Nominatim, Photon, Open-Meteo
+│       ├── urls.py
+│       ├── admin.py
+│       └── management/commands/seed_demo.py   # demo data
+└── frontend/
+    ├── Dockerfile                       # node build → nginx
+    ├── nginx.conf                       # SPA + proxy /api to the backend
+    ├── vite.config.js
+    └── src/
+        ├── main.jsx, App.jsx            # router, header, routes
+        ├── api.js                       # fetch wrapper: Bearer token, refresh on 401
+        ├── auth/                        # AuthProvider, useAuth, ProtectedRoute, tokens
+        ├── pages/                       # Home, Login, Trips, TripForm, Trip, Profile
+        ├── components/                  # map, place search, visits, modal, dialogs
+        ├── hooks/                       # useApi, useDebounced
+        └── index.css                    # dark theme
 ```
