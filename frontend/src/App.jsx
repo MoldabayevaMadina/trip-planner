@@ -6,6 +6,8 @@ import TripsPage from './pages/TripsPage'
 import TripFormPage from './pages/TripFormPage'
 import TripPage from './pages/TripPage'
 import ProfilePage from './pages/ProfilePage'
+import HomePage from './pages/HomePage'
+
 
 export default function App() {
   const { user, logout } = useAuth()
@@ -19,7 +21,8 @@ export default function App() {
   return (
     <>
       <header className="topbar">
-        <Link to={user ? '/trips' : '/'} className="brand">🧭 <span>Trip Planner</span></Link>
+        {/* <Link to={user ? '/trips' : '/'} className="brand">🧭 <span>Trip Planner</span></Link> */}
+        <Link to="/" className="brand">🧭 <span>Trip Planner</span></Link>
         <nav>
           {user && <NavLink to="/trips">My trips</NavLink>}
           {user && <NavLink to="/profile">Profile</NavLink>}
@@ -42,7 +45,7 @@ export default function App() {
 
       <main className="container">
         <Routes>
-          <Route path="/" element={<Navigate to="/trips" replace />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
 
           {/* only for logged-in users */}
