@@ -16,6 +16,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    
+  frontend:
+    build: ./frontend
+    container_name: trip-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    networks:
+      - trip-net
 
   backend:
     build: ./backend

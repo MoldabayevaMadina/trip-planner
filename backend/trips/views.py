@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.db import DatabaseError, connection, transaction
 from django.db.models import Count, IntegerField, ProtectedError, Q, Value
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import generics, serializers, status
@@ -681,5 +681,3 @@ def geocode_search(request):
     return Response(asdict(geocode_or_error(query, "q")))
 
 
-def index(request):
-    return render(request, "trips/index.html")
