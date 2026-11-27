@@ -5,12 +5,138 @@ info:
   description: 'Plan trips day by day: places with coordinates (Nominatim) and weather
     for every day (Open-Meteo).'
 paths:
+  /api/auth/change-password/:
+    post:
+      operationId: auth_change_password_create
+      description: 'POST /api/auth/change-password/ — {"old_password": "...", "new_password":
+        "..."}.'
+      summary: Change password
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePasswordResponse'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenObtainPair'
+          description: ''
+  /api/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: GET / PATCH /api/auth/me/ — who am I; change username, email, home
+        city, bio.
+      summary: Current user and profile
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      description: GET / PATCH /api/auth/me/ — who am I; change username, email, home
+        city, bio.
+      summary: Current user and profile
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: POST /api/auth/register/ — creates a user and logs them in at once.
+      summary: Sign up
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+          description: ''
   /api/cities/:
     get:
       operationId: cities_list
-      description: GET /api/cities/ — every city we travel to, with the number of
-        trips (GROUP BY city).
-      summary: Cities of all trips
+      description: GET /api/cities/ — every city I travel to, with the number of trips
+        (GROUP BY city).
+      summary: Cities of my trips
       parameters:
       - in: query
         name: country
@@ -20,7 +146,7 @@ paths:
       tags:
       - cities
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -33,7 +159,7 @@ paths:
   /api/countries/:
     get:
       operationId: countries_list
-      description: GET /api/countries/ — countries of all trips (created automatically
+      description: GET /api/countries/ — countries (public; created automatically
         when a city is geocoded).
       parameters:
       - in: query
@@ -44,6 +170,7 @@ paths:
       tags:
       - countries
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -68,6 +195,7 @@ paths:
       tags:
       - countries
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -94,7 +222,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedCountry'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -105,8 +233,8 @@ paths:
   /api/countries/{id}/places/:
     get:
       operationId: countries_places_list
-      description: GET /api/countries/{id}/places/ — places planned in trips to this
-        country.
+      description: GET /api/countries/{id}/places/ — places planned in my trips to
+        this country.
       parameters:
       - in: path
         name: id
@@ -116,7 +244,7 @@ paths:
       tags:
       - countries
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -129,7 +257,7 @@ paths:
   /api/countries/{id}/trips/:
     get:
       operationId: countries_trips_list
-      description: GET /api/countries/{id}/trips/ — all trips to this country.
+      description: GET /api/countries/{id}/trips/ — my trips to this country.
       parameters:
       - in: path
         name: id
@@ -139,7 +267,7 @@ paths:
       tags:
       - countries
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -152,7 +280,7 @@ paths:
   /api/dates/{date}/trips/:
     get:
       operationId: dates_trips_list
-      description: GET /api/dates/{YYYY-MM-DD}/trips/ — trips that go on this date.
+      description: GET /api/dates/{YYYY-MM-DD}/trips/ — my trips that go on this date.
       parameters:
       - in: path
         name: date
@@ -162,7 +290,7 @@ paths:
       tags:
       - dates
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -186,7 +314,7 @@ paths:
       tags:
       - days
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -212,7 +340,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Day'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -238,7 +366,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedDay'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -260,7 +388,7 @@ paths:
       tags:
       - days
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -284,7 +412,7 @@ paths:
       tags:
       - days
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -312,7 +440,7 @@ paths:
             schema:
               $ref: '#/components/schemas/VisitCreate'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -335,7 +463,7 @@ paths:
       tags:
       - geocode
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -351,6 +479,7 @@ paths:
       tags:
       - health
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -362,7 +491,8 @@ paths:
   /api/places/:
     get:
       operationId: places_list
-      description: GET /api/places/?category=&search=&trip= — all places of the catalog.
+      description: GET /api/places/?category=&search=&trip= — the shared catalog of
+        places (public).
       parameters:
       - in: query
         name: category
@@ -385,10 +515,11 @@ paths:
         name: trip
         schema:
           type: integer
-        description: Only places planned in this trip
+        description: Only places planned in this trip of mine (needs login)
       tags:
       - places
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -413,6 +544,7 @@ paths:
       tags:
       - places
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -440,7 +572,7 @@ paths:
               $ref: '#/components/schemas/Place'
         required: true
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -466,7 +598,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedPlace'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -487,15 +619,15 @@ paths:
       tags:
       - places
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '204':
           description: No response body
   /api/places/{id}/days/:
     get:
       operationId: places_days_list
-      description: GET /api/places/{id}/days/ — days (of any trip) when this place
-        is planned.
+      description: GET /api/places/{id}/days/ — days (of any of my trips) when this
+        place is planned.
       parameters:
       - in: path
         name: id
@@ -505,7 +637,7 @@ paths:
       tags:
       - places
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -518,7 +650,7 @@ paths:
   /api/places/{id}/trips/:
     get:
       operationId: places_trips_list
-      description: GET /api/places/{id}/trips/ — trips that visit this place.
+      description: GET /api/places/{id}/trips/ — my trips that visit this place.
       parameters:
       - in: path
         name: id
@@ -528,7 +660,7 @@ paths:
       tags:
       - places
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -541,7 +673,8 @@ paths:
   /api/places/popular/:
     get:
       operationId: places_popular_list
-      description: GET /api/places/popular/ — places planned in the most trips.
+      description: GET /api/places/popular/ — places planned in the most trips of
+        all travellers (public, only numbers).
       parameters:
       - in: query
         name: limit
@@ -551,6 +684,7 @@ paths:
       tags:
       - places
       security:
+      - jwtAuth: []
       - {}
       responses:
         '200':
@@ -561,10 +695,42 @@ paths:
                 items:
                   $ref: '#/components/schemas/PopularPlace'
           description: ''
+  /api/places/suggest/:
+    get:
+      operationId: places_suggest_list
+      description: GET /api/places/suggest/?q=starb&trip=5 — up to 6 places for the
+        dropdown. Nothing is saved.
+      summary: Place suggestions while typing
+      parameters:
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: What the user is typing, at least 3 characters
+        required: true
+      - in: query
+        name: trip
+        schema:
+          type: integer
+        description: Places near this trip's city come first; other countries are
+          hidden
+      tags:
+      - places
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaceSuggestion'
+          description: ''
   /api/trips/:
     get:
       operationId: trips_list
-      description: GET /api/trips/ — trips with filters. POST — create a trip (the
+      description: GET /api/trips/ — my trips with filters. POST — create a trip (the
         city is geocoded, days are created).
       parameters:
       - in: query
@@ -628,7 +794,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -640,7 +806,7 @@ paths:
           description: ''
     post:
       operationId: trips_create
-      description: GET /api/trips/ — trips with filters. POST — create a trip (the
+      description: GET /api/trips/ — my trips with filters. POST — create a trip (the
         city is geocoded, days are created).
       parameters:
       - in: query
@@ -710,7 +876,7 @@ paths:
               $ref: '#/components/schemas/Trip'
         required: true
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -721,7 +887,7 @@ paths:
   /api/trips/{id}/:
     get:
       operationId: trips_retrieve
-      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one of my trips.
       parameters:
       - in: path
         name: id
@@ -731,7 +897,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -741,7 +907,7 @@ paths:
           description: ''
     put:
       operationId: trips_update
-      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one of my trips.
       parameters:
       - in: path
         name: id
@@ -757,7 +923,7 @@ paths:
               $ref: '#/components/schemas/Trip'
         required: true
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -767,7 +933,7 @@ paths:
           description: ''
     patch:
       operationId: trips_partial_update
-      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one of my trips.
       parameters:
       - in: path
         name: id
@@ -782,7 +948,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedTrip'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -792,7 +958,7 @@ paths:
           description: ''
     delete:
       operationId: trips_destroy
-      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one trip.
+      description: GET / PUT / PATCH / DELETE /api/trips/{id}/ — one of my trips.
       parameters:
       - in: path
         name: id
@@ -802,7 +968,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '204':
           description: No response body
@@ -826,7 +992,7 @@ paths:
               $ref: '#/components/schemas/TripCopy'
         required: true
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '201':
           content:
@@ -849,7 +1015,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -871,7 +1037,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -896,7 +1062,7 @@ paths:
       tags:
       - trips
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -907,8 +1073,8 @@ paths:
   /api/visits/:
     get:
       operationId: visits_list
-      description: GET /api/visits/?trip=&date=&visited=&category= — all planned places
-        with filters.
+      description: GET /api/visits/?trip=&date=&visited=&category= — all my planned
+        places with filters.
       parameters:
       - in: query
         name: category
@@ -940,7 +1106,7 @@ paths:
       tags:
       - visits
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -964,7 +1130,7 @@ paths:
       tags:
       - visits
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -990,7 +1156,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Visit'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -1016,7 +1182,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedVisit'
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '200':
           content:
@@ -1037,7 +1203,7 @@ paths:
       tags:
       - visits
       security:
-      - {}
+      - jwtAuth: []
       responses:
         '204':
           description: No response body
@@ -1059,6 +1225,26 @@ components:
         * `walk` - Walk
         * `shopping` - Shopping
         * `other` - Other
+    ChangePassword:
+      type: object
+      description: POST /api/auth/change-password/ — the old password is required.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+      required:
+      - new_password
+      - old_password
+    ChangePasswordResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     City:
       type: object
       properties:
@@ -1316,6 +1502,9 @@ components:
           allOf:
           - $ref: '#/components/schemas/CountryShort'
           readOnly: true
+        owner:
+          type: string
+          readOnly: true
         latitude:
           type: number
           format: double
@@ -1336,6 +1525,34 @@ components:
         created_at:
           type: string
           format: date-time
+          readOnly: true
+    PatchedUser:
+      type: object
+      description: 'The current user: GET and PATCH /api/auth/me/. The profile is
+        nested (one-to-one).'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        profile:
+          $ref: '#/components/schemas/Profile'
+        trips_count:
+          type: integer
           readOnly: true
     PatchedVisit:
       type: object
@@ -1418,6 +1635,33 @@ components:
       - longitude
       - name
       - osm_id
+    PlaceSuggestion:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        country:
+          type: string
+        country_code:
+          type: string
+        osm_id:
+          type: string
+      required:
+      - address
+      - country
+      - country_code
+      - latitude
+      - longitude
+      - name
+      - osm_id
     PopularPlace:
       type: object
       description: A place with how often it is planned (numbers come from .annotate()
@@ -1468,6 +1712,91 @@ components:
       - osm_id
       - trips_count
       - visits_count
+    Profile:
+      type: object
+      properties:
+        home_city:
+          type: string
+          maxLength: 120
+        bio:
+          type: string
+          maxLength: 500
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+    Register:
+      type: object
+      description: POST /api/auth/register/ — a new user and an empty profile.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - id
+      - password
+      - username
+    RegisterResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        refresh:
+          type: string
+        access:
+          type: string
+      required:
+      - access
+      - refresh
+      - user
+    TokenObtainPair:
+      type: object
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - password
+      - refresh
+      - username
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
     Trip:
       type: object
       properties:
@@ -1483,6 +1812,9 @@ components:
         country:
           allOf:
           - $ref: '#/components/schemas/CountryShort'
+          readOnly: true
+        owner:
+          type: string
           readOnly: true
         latitude:
           type: number
@@ -1513,6 +1845,7 @@ components:
       - id
       - latitude
       - longitude
+      - owner
       - places_count
       - start_date
     TripCopy:
@@ -1595,6 +1928,39 @@ components:
       - date
       - planned
       - visited
+    User:
+      type: object
+      description: 'The current user: GET and PATCH /api/auth/me/. The profile is
+        nested (one-to-one).'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        profile:
+          $ref: '#/components/schemas/Profile'
+        trips_count:
+          type: integer
+          readOnly: true
+      required:
+      - date_joined
+      - id
+      - trips_count
+      - username
     Visit:
       type: object
       description: A place planned for a day. Place fields are shown flat, so a visit
@@ -1647,10 +2013,12 @@ components:
     VisitCreate:
       type: object
       description: |-
-        Body of POST /api/days/{id}/visits/. Three ways to add a place to a day:
+        Body of POST /api/days/{id}/visits/. Ways to add a place to a day:
         1. an existing place:            {"place": 7}
         2. a new place by name:          {"name": "Galata Tower"}           (found on the map near the trip's city)
         3. a new place with coordinates: {"name": "Our hotel", "latitude": 41.03, "longitude": 28.98}
+        4. a picked suggestion:          {"name": "Starbucks", "latitude": ..., "longitude": ...,
+                                          "address": "...", "osm_id": "node/123"}   (stored once per osm_id)
       properties:
         place:
           type: integer
@@ -1669,6 +2037,12 @@ components:
           format: double
           maximum: 180
           minimum: -180
+        address:
+          type: string
+          maxLength: 300
+        osm_id:
+          type: string
+          maxLength: 40
         time:
           type: string
           format: time
@@ -1703,3 +2077,8 @@ components:
       - temp_max
       - temp_min
       - text
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
