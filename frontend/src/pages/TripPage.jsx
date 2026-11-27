@@ -24,7 +24,7 @@ export default function TripPage() {
     return (
       <div className="empty">
         <p>{plan.error.status === 404 ? 'This trip no longer exists.' : plan.error.message}</p>
-        <Link to="/" className="btn secondary">Back to trips</Link>
+        <Link to="/trips" className="btn secondary">Back to trips</Link>
       </div>
     )
   }
@@ -89,7 +89,7 @@ export default function TripPage() {
 
   return (
     <>
-      <Link to="/" className="back">← All trips</Link>
+      <Link to="/trips" className="back">← All trips</Link>
 
       <div className="card trip-head">
         <div className="city-badge">{trip.city.charAt(0).toUpperCase()}</div>

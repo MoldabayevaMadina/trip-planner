@@ -24,7 +24,7 @@ function EditTrip({ id }) {
 function TripForm({ trip }) {
   const navigate = useNavigate()
   const isEdit = Boolean(trip)
-  const backTo = isEdit ? `/trips/${trip.id}` : '/'
+  const backTo = isEdit ? `/trips/${trip.id}` : '/trips'
 
   const [values, setValues] = useState({
     city: trip?.city ?? '',
